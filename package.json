@@ -1,0 +1,32 @@
+{
+  "name": "web3d-graph-book",
+  "version": "1.0.0",
+  "description": "A knowledge website for graphics and Web3D with interactive 3D examples",
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev docs",
+    "build": "vitepress build docs",
+    "preview": "vitepress preview docs",
+    "type-check": "vue-tsc --noEmit"
+  },
+  "keywords": [
+    "graphics",
+    "web3d",
+    "three.js",
+    "vue",
+    "typescript",
+    "vitepress"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/three": "^0.161.0",
+    "vitepress": "^1.0.0",
+    "vue": "^3.3.0",
+    "vue-tsc": "^1.8.0",
+    "typescript": "^5.2.0"
+  },
+  "dependencies": {
+    "three": "^0.158.0"
+  }
+}
