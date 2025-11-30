@@ -1,72 +1,82 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig } from "vitepress";
 
 export default defineConfig({
-  title: 'Web3D & Graphics Book',
-  description: 'A comprehensive knowledge base for graphics programming and Web3D development',
+  title: "Web3D & Graphics Book",
+  description: "图形编程与 Web3D 开发的综合知识库",
   lastUpdated: true,
   cleanUrls: true,
 
-  head: [
-    ['link', { rel: 'icon', href: '/favicon.ico' }],
-    ['meta', { name: 'theme-color', content: '#3c8772' }],
-  ],
+  head: [["link", { rel: "icon", href: "../../images/avatar.png" }]],
 
   themeConfig: {
-    logo: '/logo.svg',
-    
+    logo: "/logo.svg",
+
     nav: [
-      { text: 'Home', link: '/' },
-      { text: 'Examples', link: '/examples/' },
-      { text: 'About', link: '/about' }
+      { text: "首页", link: "/" },
+      { text: "着色器", link: "/shader/" },
     ],
 
     sidebar: {
-      '/examples/': [
+      "/shader/": [
         {
-          text: '3D Examples',
+          text: "GLSL",
           items: [
-            { text: 'Basic Cube', link: '/examples/basic-cube' },
-            { text: 'Lighting Demo', link: '/examples/lighting' },
-            { text: 'Geometry Showcase', link: '/examples/geometry' },
-            { text: 'Materials Demo', link: '/examples/materials' }
-          ]
-        }
-      ]
+            { text: "Basic Shader", link: "/shader/basic-shader" },
+            { text: "Lighting Shader", link: "/shader/lighting-shader" },
+            { text: "Geometry Shader", link: "/shader/geometry-shader" },
+            { text: "Materials Shader", link: "/shader/materials-shader" },
+          ],
+        },
+        {
+          text: "WGSL",
+          items: [
+            { text: "Basic Shader", link: "/shader/basic-shader" },
+            { text: "Lighting Shader", link: "/shader/lighting-shader" },
+            { text: "Geometry Shader", link: "/shader/geometry-shader" },
+            { text: "Materials Shader", link: "/shader/materials-shader" },
+          ],
+        },
+        {
+          text: "案例",
+          items: [
+            { text: "Basic Shader", link: "/shader/basic-shader" },
+            { text: "Lighting Shader", link: "/shader/lighting-shader" },
+            { text: "Geometry Shader", link: "/shader/geometry-shader" },
+            { text: "Materials Shader", link: "/shader/materials-shader" },
+          ],
+        },
+      ],
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/your-username/web3d-graph-book' }
+      { icon: "github", link: "https://github.com/BJJINS/web3d-graph-book.git" },
+      { icon: "gitee", link: "https://gitee.com/bjjin/web3d-graph-book.git" },
     ],
 
     footer: {
-      message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2024 Web3D & Graphics Book'
-    },
-
-    editLink: {
-      pattern: 'https://github.com/your-username/web3d-graph-book/edit/main/docs/:path',
-      text: 'Edit this page on GitHub'
+      message: "Released under the MIT License.",
+      copyright: "Copyright © 2024 Web3D & Graphics Book",
     },
 
     search: {
-      provider: 'local'
-    }
+      provider: "local",
+    },
   },
 
   vite: {
     plugins: [],
     resolve: {
       alias: {
-        '@': '/docs'
-      }
-    }
+        "@": "/docs",
+      },
+    },
   },
 
   vue: {
     template: {
       compilerOptions: {
-        isCustomElement: (tag) => tag.startsWith('three-')
-      }
-    }
-  }
-})
+        isCustomElement: (tag) => tag.startsWith("three-"),
+      },
+    },
+  },
+});

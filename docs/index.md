@@ -9,13 +9,6 @@ hero:
     - theme: brand
       text: 开始学习
       link: /examples/basic-cube
-    - theme: alt
-      text: 在 GitHub 上查看
-      link: https://github.com/BJJINS/web3d-graph-book.git
-    - theme: alt
-      text: 在 Gitee 上查看
-      link: https://gitee.com/bjjin/web3d-graph-book.git
-
 
 features:
   - title: 交互式 3D 示例
@@ -33,6 +26,7 @@ features:
 
 ---
 
+<br />
 <br />
 
 # 欢迎来到 Web3D & 图形学教程
