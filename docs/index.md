@@ -2,60 +2,97 @@
 layout: home
 
 hero:
-  name: "Web3D & Graphics Book"
-  text: "Interactive Learning Platform"
-  tagline: Explore computer graphics and Web3D development with live examples powered by Three.js, Vue 3, and TypeScript
+  name: "Web3D & 图形学教程"
+  text: "交互式学习平台"
+  tagline: 通过 Three.js、Vue 3 和 TypeScript 驱动的实时示例探索计算机图形学和 Web3D 开发
   actions:
     - theme: brand
-      text: Get Started
+      text: 开始学习
       link: /examples/basic-cube
     - theme: alt
-      text: View on GitHub
-      link: https://github.com/your-username/web3d-graph-book
+      text: 在 GitHub 上查看
+      link: https://github.com/BJJINS/web3d-graph-book.git
+    - theme: alt
+      text: 在 Gitee 上查看
+      link: https://gitee.com/bjjin/web3d-graph-book.git
+
 
 features:
-  - title: Interactive 3D Examples
-    details: Learn through hands-on examples with real-time 3D rendering powered by Three.js
+  - title: 交互式 3D 示例
+    details: 通过 Three.js 驱动的实时 3D 渲染动手示例进行学习
     icon: 🎮
-  - title: Modern Web Technologies
-    details: Built with Vue 3, TypeScript, and VitePress for the best development experience
+  - title: 现代 Web 技术
+    details: 使用 Vue 3、TypeScript 和 VitePress 构建，提供最佳开发体验
     icon: ⚡
-  - title: Comprehensive Coverage
-    details: From basic geometry to advanced shaders, covering all aspects of computer graphics
+  - title: 全面覆盖
+    details: 从基础几何到高级着色器，涵盖计算机图形学的所有方面
     icon: 📚
-  - title: Open Source
-    details: Fully open source - contribute, learn, and share your knowledge with the community
+  - title: 开源项目
+    details: 完全开源 - 贡献、学习并与社区分享您的知识
     icon: 🔓
 
 ---
 
-# Welcome to Web3D & Graphics Book
+<br />
 
-This is your comprehensive guide to computer graphics and Web3D development. Whether you're a beginner looking to understand the fundamentals or an experienced developer seeking advanced techniques, this platform provides interactive learning experiences with real-time 3D examples.
+# 欢迎来到 Web3D & 图形学教程
 
-## What You'll Learn
+这是您学习计算机图形学和 Web3D 开发的综合指南。无论您是想要了解基础知识的初学者，还是寻求高级技术的经验丰富的开发者，这个平台都提供带有实时 3D 示例的交互式学习体验。
 
-- **Fundamental Concepts**: Understanding 3D coordinate systems, transformations, and rendering pipelines
-- **Three.js Mastery**: Building complex 3D scenes, working with materials, lights, and cameras
-- **Advanced Graphics**: Shader programming, post-processing effects, and optimization techniques
-- **WebGL Fundamentals**: Deep dive into WebGL API and GPU programming concepts
+## 您将学习的内容
 
-## Quick Start
+- **基础概念**：理解 3D 坐标系、变换和渲染管线
+- **Three.js 精通**：构建复杂的 3D 场景，处理材质、灯光和相机
+- **高级图形学**：着色器编程、后处理效果和优化技术
+- **WebGL 基础**：深入探索 WebGL API 和 GPU 编程概念
 
-1. **Explore Examples**: Check out our interactive examples in the navigation menu
-2. **Read Documentation**: Each example comes with detailed explanations and code
-3. **Experiment**: Modify the code and see real-time changes in the 3D viewport
-4. **Build Projects**: Apply what you've learned to create your own 3D applications
+## 快速开始
 
-## Technology Stack
+1. **探索示例**：在导航菜单中查看我们的交互式示例
+2. **阅读文档**：每个示例都配有详细的解释和代码
+3. **实验**：修改代码并在 3D 视口中查看实时变化
+4. **构建项目**：应用所学知识创建您自己的 3D 应用程序
 
-- **Vue 3**: Modern reactive framework for building user interfaces
-- **TypeScript**: Type-safe JavaScript for better development experience
-- **Three.js**: Powerful 3D library for WebGL rendering
-- **VitePress**: Fast static site generator with excellent developer experience
+## 技术栈
 
-Ready to dive in? Start with our [Basic Cube Example](/examples/basic-cube) to get familiar with Three.js fundamentals!
+- **Vue 3**：用于构建用户界面的现代响应式框架
+- **TypeScript**：类型安全的 JavaScript，提供更好的开发体验
+- **Three.js**：强大的 WebGL 渲染 3D 库
+- **VitePress**：具有优秀开发者体验的快速静态站点生成器
+
+准备好开始了吗？从我们的[基础立方体示例](/examples/basic-cube)开始，熟悉 Three.js 的基础知识！
 
 ---
 
-*This project is continuously updated with new examples and content. Feel free to contribute or suggest improvements!*
+_此项目持续更新新的示例和内容。欢迎贡献或提出改进建议！_
+
+# 欢迎来到 Web3D & 图形学教程
+
+这是您学习计算机图形学和 Web3D 开发的综合指南。无论您是想要了解基础知识的初学者，还是寻求高级技术的经验丰富的开发者，这个平台都提供带有实时 3D 示例的交互式学习体验。
+
+## 您将学习的内容
+
+- **基础概念**：理解 3D 坐标系、变换和渲染管线
+- **Three.js 精通**：构建复杂的 3D 场景，处理材质、灯光和相机
+- **高级图形学**：着色器编程、后处理效果和优化技术
+- **WebGL 基础**：深入探索 WebGL API 和 GPU 编程概念
+
+## 快速开始
+
+1. **探索示例**：在导航菜单中查看我们的交互式示例
+2. **阅读文档**：每个示例都配有详细的解释和代码
+3. **实验**：修改代码并在 3D 视口中查看实时变化
+4. **构建项目**：应用所学知识创建您自己的 3D 应用程序
+
+## 技术栈
+
+- **Vue 3**：用于构建用户界面的现代响应式框架
+- **TypeScript**：类型安全的 JavaScript，提供更好的开发体验
+- **Three.js**：强大的 WebGL 渲染 3D 库
+- **VitePress**：具有优秀开发者体验的快速静态站点生成器
+
+准备好开始了吗？从我们的[基础立方体示例](/examples/basic-cube)开始，熟悉 Three.js 的基础知识！
+
+---
+
+_此项目持续更新新的示例和内容。欢迎贡献或提出改进建议！_
