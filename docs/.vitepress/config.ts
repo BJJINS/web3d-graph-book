@@ -6,9 +6,11 @@ export default defineConfig({
   lastUpdated: true,
   cleanUrls: true,
 
-  head: [["link", { rel: "icon", href: "../../images/avatar.png" }]],
+  head: [["link", { rel: "icon", href: "/images/avatar.png" }]],
 
   themeConfig: {
+    logo: "/images/avatar.png",
+
     nav: [
       { text: "首页", link: "/" },
       { text: "着色器", link: "/shader/" },
