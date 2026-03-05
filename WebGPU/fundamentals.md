@@ -1,10 +1,20 @@
-# Markdown Extension Examples
+<script setup>
+import TriangleGridCanvas from '../components/TriangleGridCanvas.vue'
+</script>
+
+# 基础知识
 
 This page demonstrates some of the built-in markdown extensions provided by VitePress.
+
+## Triangle Grid Canvas
+
+<TriangleGridCanvas />
 
 ## Syntax Highlighting
 
 VitePress provides Syntax Highlighting powered by [Shiki](https://github.com/shikijs/shiki), with additional features like line-highlighting:
+
+
 
 **Input**
 

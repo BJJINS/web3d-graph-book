@@ -8,15 +8,15 @@ export default defineConfig({
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: '主页', link: '/' },
-      { text: 'WebGPU', link: '/WebGPU/markdown-examples' },
+      { text: 'WebGPU', link: '/WebGPU/fundamentals' },
     ],
 
     sidebar: {
       '/WebGPU': [
         {
-          text: 'Examples',
+          text: 'WebGPU',
           items: [
-            { text: 'Markdown Examples', link: '/WebGPU/markdown-examples' },
+            { text: '基础知识', link: '/WebGPU/fundamentals' },
           ]
         },
       ],
