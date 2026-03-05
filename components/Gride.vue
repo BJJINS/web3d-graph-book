@@ -7,12 +7,8 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
 
-const Cell_Size = 48;
-const Gride_Stroke_Style = 'rgba(80, 80, 80, 0.25)';
+const cellSize = 48;
 const Inside_Fill_Style = 'rgba(59, 130, 246, 0.14)';
-const Cell_Dot_Fill_Style = 'rgba(30, 64, 175, 0.55)';
-
-const Cell_Point_Radius = 3;
 
 const dragDots = [];
 
@@ -24,33 +20,35 @@ const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
 
 let ro: ResizeObserver;
 let raIdx: number | null = null;
-
-let ctx: CanvasRenderingContext2D;
+let ctx: CanvasRenderingContext2D | null;
 
 const drawGride = () => {
-    const { height, width } = canvasEl.value!;
-    const rowCells = height / Cell_Size;
-    const colCells = width / Cell_Size;
+    if (!canvasEl.value || !ctx) {
+        return;
+    }
+    const { height, width } = canvasEl.value;
+    const rowCells = height / cellSize;
+    const colCells = width / cellSize;
 
     ctx.beginPath();
-    ctx.strokeStyle = Gride_Stroke_Style;
+    ctx.strokeStyle = 'rgba(80, 80, 80, 0.25)';
     for (let i = 0; i < rowCells + 1; i++) {
-        ctx.moveTo(0, i * Cell_Size);
-        ctx.lineTo(colCells * Cell_Size, i * Cell_Size);
+        ctx.moveTo(0, i * cellSize);
+        ctx.lineTo(colCells * cellSize, i * cellSize);
     }
 
     for (let i = 0; i < colCells + 1; i++) {
-        ctx.moveTo(i * Cell_Size, 0);
-        ctx.lineTo(i * Cell_Size, rowCells * Cell_Size);
+        ctx.moveTo(i * cellSize, 0);
+        ctx.lineTo(i * cellSize, rowCells * cellSize);
     }
     ctx.stroke();
 
-    ctx.fillStyle = Cell_Dot_Fill_Style;
+    ctx.fillStyle = 'rgba(30, 64, 175, 0.55)';
 
     for (let x = 0; x < rowCells; x++) {
         for (let y = 0; y < colCells; y++) {
             ctx.beginPath();
-            ctx.arc((y + 0.5) * Cell_Size, (x + 0.5) * Cell_Size, Cell_Point_Radius, 0, Math.PI * 2);
+            ctx.arc((y + 0.5) * cellSize, (x + 0.5) * cellSize, 3, 0, Math.PI * 2);
             ctx.fill();
         }
     }
@@ -58,7 +56,10 @@ const drawGride = () => {
 };
 
 const update = () => {
-    ctx.clearRect(0, 0, canvasEl.value!.width, canvasEl.value!.height)
+    if (!canvasEl.value || !ctx) {
+        return;
+    }
+    ctx.clearRect(0, 0, canvasEl.value.width, canvasEl.value.height)
     drawGride();
     raIdx = null;
 };
@@ -72,7 +73,13 @@ const requestDraw = () => {
 
 
 onMounted(() => {
-    ctx = canvasEl.value!.getContext("2d")!;
+    if (!canvasEl.value) {
+        return
+    }
+    ctx = canvasEl.value.getContext("2d");
+    if (!ctx) {
+        return;
+    }
     ro = new ResizeObserver((entries) => {
         for (const entry of entries) {
             let width = entry.contentBoxSize[0].inlineSize;
@@ -80,8 +87,8 @@ onMounted(() => {
             canvasEl.value!.setAttribute("style", `width: ${width}px; height: ${height};`);
             width *= dpr;
             height *= dpr;
-            const canvasWidth = width - width % Cell_Size;
-            const canvasHeight = height - height % Cell_Size;
+            const canvasWidth = width - width % cellSize;
+            const canvasHeight = height - height % cellSize;
             canvasEl.value!.height = canvasHeight;
             canvasEl.value!.width = canvasWidth;
             requestDraw();
@@ -92,7 +99,10 @@ onMounted(() => {
 
 
 onBeforeUnmount(() => {
-    ro.unobserve(contentEl.value!);
+    if (!contentEl.value) {
+        return;
+    }
+    ro.unobserve(contentEl.value);
     if (raIdx !== null) {
         cancelAnimationFrame(raIdx);
     }
