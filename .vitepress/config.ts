@@ -7,26 +7,19 @@ export default defineConfig({
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
-      { text: 'Home', link: '/' },
-      { text: 'Examples', link: '/examples/markdown-examples' },
-      { text: 'Rust', link: '/rust/api-examples' }
+      { text: '主页', link: '/' },
+      { text: 'WebGPU', link: '/WebGPU/markdown-examples' },
     ],
 
     sidebar: {
-      '/examples': [
+      '/WebGPU': [
         {
           text: 'Examples',
           items: [
-            { text: 'Markdown Examples', link: '/examples/markdown-examples' },
+            { text: 'Markdown Examples', link: '/WebGPU/markdown-examples' },
           ]
         },
       ],
-      "/rust": [{
-        text: 'rust',
-        items: [
-          { text: 'Runtime API Examples', link: '/api-examples' }
-        ]
-      }]
     },
 
     socialLinks: [
