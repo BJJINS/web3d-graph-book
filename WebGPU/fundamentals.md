@@ -1,8 +1,11 @@
 <script setup>
 import TriangleGridCanvas from '../components/TriangleGridCanvas.vue'
+import Gride from '../components/Gride.vue'
 </script>
 
 # 基础知识
+
+<Gride /> 
 
 本文将向您介绍 WebGPU 的基础知识。<br>
 WebGPU 是一个应用程序接口，可让您做两件基本的事情。<br>
