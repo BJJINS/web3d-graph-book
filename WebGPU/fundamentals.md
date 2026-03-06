@@ -1,16 +1,15 @@
 <script setup>
 import TriangleGridCanvas from '../components/TriangleGridCanvas.vue'
-import Gride from '../components/Gride.vue'
 </script>
 
 # 基础知识
 
-<Gride /> 
+本文将向您介绍 WebGPU 的基础知识。
 
-本文将向您介绍 WebGPU 的基础知识。<br>
-WebGPU 是一个应用程序接口，可让您做两件基本的事情。<br>
-1. 图形渲染，在 HTML Canvas 中显示图形。<br>
-2. 在GPU上执行计算。<br>
+WebGPU 是一个应用程序接口，可让您做两件基本的事情。
+
+1. 图形渲染，在 HTML Canvas 中显示图形。
+2. 在GPU上执行计算。
 
 ## 图形渲染
 
@@ -23,7 +22,6 @@ WebGPU 是一个应用程序接口，可让您做两件基本的事情。<br>
 片段着色器负责计算颜色。在绘制三角形时，GPU 会为每个要绘制的像素调用片段着色器。片段着色器会返回一种颜色。
 
 对于初次接触图形编程的人来说，这可能有点令人困惑。下面用一个简单的绘制三角形到纹理的例子来展示如何使用 WebGPU 进行图形渲染。你会知道 WebGPU 进行图形渲染的流程。
-
 
 ### 绘制三角形到纹理上
 
@@ -44,10 +42,12 @@ if (!device) {
     throw new Error('need a browser that supports WebGPU');
 }
 ```
+
 **Navigator**
 
 `navigator` 是浏览器提供的全局对象，用于访问浏览器的功能和信息。在 WebGPU 中，我们使用 `navigator.gpu` 来检查浏览器是否支持 WebGPU。
 如果存在，gpu 属性提供了两个重要方法：
+
 - `requestAdapter()`—返回一个 Promise，该 Promise 满足时会提供一个 GPUAdapter
 - `getPreferredCanvasFormat()`—返回一个字符串，标识浏览器画布中图形的最佳格式
 
@@ -122,26 +122,11 @@ context.configure({
 
 然后我们通过调用 `configure` 将 `format` 传入 webgpu 画布上下文。我们还将 `device` 传入画布，从而将画布与我们刚刚创建的设备关联起来。
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 <TriangleGridCanvas />
 
 ## Syntax Highlighting
 
 VitePress provides Syntax Highlighting powered by [Shiki](https://github.com/shikijs/shiki), with additional features like line-highlighting:
-
-
 
 **Input**
 

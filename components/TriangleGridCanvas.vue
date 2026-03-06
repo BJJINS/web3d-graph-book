@@ -1,373 +1,332 @@
 <template>
-  <div ref="rootEl" class="triangle-grid-root">
-    <canvas ref="canvasEl" class="triangle-grid-canvas" />
-  </div>
+    <div class="triangle-grid-root">
+        <div ref="contentEl" class="triangle-grid-canvas-wrapper">
+            <canvas ref="canvasEl" class="triangle-grid-canvas"></canvas>
+        </div>
+        <p class="triangle-grid-hint">提示：拖动圆点改变三角形的形状</p>
+    </div>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from "vue";
 
-type Vec2 = { x: number; y: number };
+const cellSize = 20; // 格子大小
+const insideCellColor = 'rgba(99, 102, 241, 0.12)'; // 在三角形内部的格子颜色
+const gridColor = 'rgba(148, 163, 184, 0.35)'; // 网格线颜色
+const cellPointColor = 'rgba(148, 163, 184, 0.45)'; // 网格中心点颜色
+const cellPointRadius = 2; // 网格中心点大小
+const draggableDotSize = 4; // 可拖拽点的大小
+const draggableDotPadding = 6; // 拖拽检测范围
+const draggableDotColor = 'rgba(99, 102, 241, 0.95)'; // 可拖拽点的颜色
+const triangleColor = "rgba(99, 102, 241, 0.85)"; // 三个可拖拽点的连线颜色
 
-const rootEl = ref<HTMLDivElement | null>(null);
-const canvasEl = ref<HTMLCanvasElement | null>(null);
+const TAU = Math.PI * 2;
 
-const dpr = ref(1);
-let ctx: CanvasRenderingContext2D | null = null;
+type Vec2 = { x: number; y: number; };
+const dragDots: Vec2[] = [];
 
-const gridSize = 24;
-const pointRadius = 5;
-const pointHitPadding = 9;
-const gridDotRadius = 1.6;
-
-let rafId: number | null = null;
-let ro: ResizeObserver | null = null;
-
-const points = ref<Vec2[]>([
-  { x: 0, y: 0 },
-  { x: 0, y: 0 },
-  { x: 0, y: 0 }
-]);
-
-let didInitTriangle = false;
+let canvasCssWidth = 0;
+let canvasCssHeight = 0;
+let draggingIndex: number | null = null;
 let hoveringIndex: number | null = null;
 
-let draggingIndex: number | null = null;
-let pointerDown = false;
+const canvasEl = ref<HTMLCanvasElement>();
+const contentEl = ref<HTMLDivElement>();
+const dpr = Math.max(1, Math.floor(((typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1)));
 
-const clamp = (v: number, min: number, max: number) => {
-  return Math.max(min, Math.min(max, v));
-}
+let ro: ResizeObserver;
+let raHandle: number | null = null;
+let ctx: CanvasRenderingContext2D | null;
+let gridCanvas: HTMLCanvasElement = document.createElement('canvas');
+let gridCtx: CanvasRenderingContext2D | null = null;
 
-const sub = (a: Vec2, b: Vec2): Vec2 => {
-  return { x: a.x - b.x, y: a.y - b.y };
-}
 
-const dot = (a: Vec2, b: Vec2) => {
-  return a.x * b.x + a.y * b.y;
-}
+const cross = (a: Vec2, b: Vec2, c: Vec2) => {
+    return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+};
 
-const dist2 = (a: Vec2, b: Vec2) => {
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  return dx * dx + dy * dy;
-}
+const cellPointInTriangle = (cell: Vec2) => {
+    // 同向叉积法
+    const [a, b, c] = dragDots;
 
-const triangleContainsPoint = (p: Vec2, a: Vec2, b: Vec2, c: Vec2): boolean => {
-  const v0 = sub(c, a);
-  const v1 = sub(b, a);
-  const v2 = sub(p, a);
+    const d1 = cross(a, b, cell);
+    const d2 = cross(b, c, cell);
+    const d3 = cross(c, a, cell);
 
-  const dot00 = dot(v0, v0);
-  const dot01 = dot(v0, v1);
-  const dot02 = dot(v0, v2);
-  const dot11 = dot(v1, v1);
-  const dot12 = dot(v1, v2);
+    return (d1 >= 0.0 && d2 >= 0.0 && d3 >= 0.0) || (d1 <= 0.0 && d2 <= 0.0 && d3 <= 0.0);
+};
 
-  const denom = dot00 * dot11 - dot01 * dot01;
-  if (Math.abs(denom) < 1e-8) return false;
-
-  const inv = 1 / denom;
-  const u = (dot11 * dot02 - dot01 * dot12) * inv;
-  const v = (dot00 * dot12 - dot01 * dot02) * inv;
-
-  return u >= 0 && v >= 0 && u + v <= 1;
-}
-
-const getCanvasSizeCss = () => {
-  const el = rootEl.value;
-  if (!el) return { w: 0, h: 0 };
-  const rect = el.getBoundingClientRect();
-  const w = Math.max(1, Math.floor(rect.width));
-  const h = Math.max(1, Math.floor(rect.height));
-  return { w, h };
-}
-
-const resizeCanvas = () => {
-  const canvas = canvasEl.value;
-  if (!canvas) return;
-
-  dpr.value = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-  const { w, h } = getCanvasSizeCss();
-
-  if (!didInitTriangle && w > 0 && h > 0) {
-    const cx = w / 2;
-    const cy = h / 2;
-
-    const margin = Math.max(pointRadius + 6, gridSize);
-    const radius = Math.max(30, Math.min(w, h) * 0.28);
-    const maxR = Math.max(30, Math.min(w, h) / 2 - margin);
-    const r = Math.min(radius, maxR);
-
-    const dy = r;
-    const dx = r * Math.sqrt(3) / 2;
-
-    points.value = [
-      { x: cx, y: cy - dy },
-      { x: cx - dx, y: cy + dy / 2 },
-      { x: cx + dx, y: cy + dy / 2 }
-    ];
-
-    didInitTriangle = true;
-  }
-
-  canvas.style.width = `${w}px`;
-  canvas.style.height = `${h}px`;
-  canvas.width = Math.floor(w * dpr.value);
-  canvas.height = Math.floor(h * dpr.value);
-
-  if (ctx) {
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.scale(dpr.value, dpr.value);
-  }
-
-  for (const p of points.value) {
-    p.x = clamp(p.x, pointRadius, w - pointRadius);
-    p.y = clamp(p.y, pointRadius, h - pointRadius);
-  }
-
-  requestDraw();
-}
-
-const drawGrid = (w: number, h: number) => {
-  if (!ctx) return;
-
-  const a = points.value[0];
-  const b = points.value[1];
-  const c = points.value[2];
-
-  ctx.clearRect(0, 0, w, h);
-
-  ctx.lineWidth = 1;
-
-  const baseStroke = 'rgba(80, 80, 80, 0.25)';
-  const insideFill = 'rgba(59, 130, 246, 0.14)';
-  const dotFill = 'rgba(30, 64, 175, 0.55)';
-
-  const half = gridSize / 2;
-
-  ctx.save();
-  for (let x = 0; x < w; x += gridSize) {
-    for (let y = 0; y < h; y += gridSize) {
-      const cx = x + half;
-      const cy = y + half;
-
-      const inside = triangleContainsPoint({ x: cx, y: cy }, a, b, c);
-      if (inside) {
-        ctx.fillStyle = insideFill;
-        ctx.fillRect(x, y, gridSize, gridSize);
-      }
-
-      ctx.beginPath();
-      ctx.fillStyle = dotFill;
-      ctx.arc(cx, cy, gridDotRadius, 0, Math.PI * 2);
-      ctx.fill();
+const drawTriangle = () => {
+    if (!ctx) {
+        return;
     }
-  }
-  ctx.restore();
-
-  ctx.save();
-  ctx.strokeStyle = baseStroke;
-
-  ctx.beginPath();
-  for (let x = 0; x <= w; x += gridSize) {
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, h);
-  }
-  for (let y = 0; y <= h; y += gridSize) {
-    ctx.moveTo(0, y);
-    ctx.lineTo(w, y);
-  }
-  ctx.stroke();
-  ctx.restore();
-}
-
-const drawTriangleAndPoints = () => {
-  if (!ctx) return;
-  const canvas = canvasEl.value;
-  if (!canvas) return;
-
-  const { w, h } = getCanvasSizeCss();
-
-  const [a, b, c] = points.value;
-
-  ctx.save();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = 'rgba(59, 130, 246, 0.9)';
-  ctx.fillStyle = 'rgba(59, 130, 246, 0.10)';
-
-  ctx.beginPath();
-  ctx.moveTo(a.x, a.y);
-  ctx.lineTo(b.x, b.y);
-  ctx.lineTo(c.x, c.y);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  for (let i = 0; i < points.value.length; i++) {
-    const p = points.value[i];
     ctx.beginPath();
-    ctx.arc(p.x, p.y, pointRadius, 0, Math.PI * 2);
-    ctx.fillStyle = i === draggingIndex ? 'rgba(37, 99, 235, 1)' : 'rgba(59, 130, 246, 1)';
-    ctx.fill();
-
+    ctx.strokeStyle = triangleColor;
     ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.moveTo(dragDots[0].x, dragDots[0].y);
+    ctx.lineTo(dragDots[1].x, dragDots[1].y);
+    ctx.lineTo(dragDots[2].x, dragDots[2].y);
+    ctx.closePath();
     ctx.stroke();
-  }
+};
 
-  ctx.restore();
+const drawDraggableDots = () => {
+    if (!ctx) {
+        return;
+    }
 
-  ctx.save();
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
-  ctx.font = '12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto';
-  ctx.fillText('拖动蓝色顶点', 12, Math.min(20, h - 8));
-  ctx.restore();
-}
+    for (const dot of dragDots) {
+        ctx.beginPath();
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.arc(dot.x, dot.y, draggableDotPadding, 0, TAU);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.fillStyle = draggableDotColor;
+        ctx.arc(dot.x, dot.y, draggableDotSize, 0, TAU);
+        ctx.fill();
+    }
+};
+
+const drawStaticGrid = (colCellNum: number, rowCellNum: number) => {
+    if (!gridCtx || !gridCanvas) {
+        return;
+    }
+    gridCtx.setTransform(1, 0, 0, 1, 0, 0);
+    gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+    gridCtx.scale(dpr, dpr);
+    gridCtx.beginPath();
+    gridCtx.strokeStyle = gridColor;
+    gridCtx.lineWidth = 1;
+    for (let i = 0; i < colCellNum + 1; i++) {
+        gridCtx.moveTo(i * cellSize, 0);
+        gridCtx.lineTo(i * cellSize, canvasCssHeight);
+    }
+    for (let i = 0; i < rowCellNum + 1; i++) {
+        gridCtx.moveTo(0, i * cellSize);
+        gridCtx.lineTo(canvasCssWidth, i * cellSize);
+    }
+    gridCtx.stroke();
+
+    for (let i = 0; i < colCellNum; i++) {
+        for (let j = 0; j < rowCellNum; j++) {
+            gridCtx.beginPath();
+            gridCtx.fillStyle = cellPointColor;
+            gridCtx.arc((i + 0.5) * cellSize, (j + 0.5) * cellSize, cellPointRadius, 0, TAU);
+            gridCtx.fill();
+        }
+    }
+};
+
+const drawInsideCells = (colCellNum: number, rowCellNum: number) => {
+    if (!ctx) {
+        return;
+    }
+
+    for (let i = 0; i < colCellNum; i++) {
+        for (let j = 0; j < rowCellNum; j++) {
+            if (cellPointInTriangle({ x: (i + 0.5) * cellSize, y: (j + 0.5) * cellSize })) {
+                ctx.beginPath();
+                ctx.fillStyle = insideCellColor;
+                ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
+                ctx.fill();
+            }
+        }
+    }
+};
+
+const drawGride = () => {
+    if (!canvasEl.value || !ctx) {
+        return;
+    }
+
+    const colCellNum = Math.floor(canvasCssWidth / cellSize);
+    const rowCellNum = Math.floor(canvasCssHeight / cellSize);
+
+    if (gridCanvas) {
+        ctx.drawImage(gridCanvas, 0, 0, gridCanvas.width, gridCanvas.height, 0, 0, canvasCssWidth, canvasCssHeight);
+    }
+    drawInsideCells(colCellNum, rowCellNum);
+};
 
 const draw = () => {
-  rafId = null;
-  const { w, h } = getCanvasSizeCss();
-  if (!ctx || w <= 0 || h <= 0) return;
-
-  drawGrid(w, h);
-  drawTriangleAndPoints();
-}
+    if (!ctx) {
+        return;
+    }
+    ctx.clearRect(0, 0, canvasCssWidth, canvasCssHeight);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+    drawGride();
+    drawTriangle();
+    drawDraggableDots();
+    raHandle = null;
+};
 
 const requestDraw = () => {
-  if (rafId != null) return;
-  rafId = window.requestAnimationFrame(draw);
-}
+    if (raHandle === null) {
+        raHandle = requestAnimationFrame(draw);
+    }
+};
 
-const getPointerPos = (ev: PointerEvent): Vec2 => {
-  const canvas = canvasEl.value;
-  if (!canvas) return { x: 0, y: 0 };
-  const rect = canvas.getBoundingClientRect();
-  return {
-    x: ev.clientX - rect.left,
-    y: ev.clientY - rect.top
-  };
-}
+const resizeCanvas = () => {
+    if (!contentEl.value || !canvasEl.value) {
+        return;
+    }
+    let { width, height } = contentEl.value.getBoundingClientRect();
+    width = width - width % cellSize;
+    height = height - height % cellSize;
+    canvasCssWidth = width;
+    canvasCssHeight = height;
+    canvasEl.value.style.height = `${height}px`;
+    canvasEl.value.style.width = `${width}px`;
+    canvasEl.value.height = height * dpr;
+    canvasEl.value.width = width * dpr;
 
-const hitTestPoint = (pos: Vec2): number | null => {
-  const r2 = (pointRadius + pointHitPadding) * (pointRadius + pointHitPadding);
-  for (let i = 0; i < points.value.length; i++) {
-    if (dist2(pos, points.value[i]) <= r2) return i;
-  }
-  return null;
-}
 
-const onPointerDown = (ev: PointerEvent) => {
-  pointerDown = true;
-  const canvas = canvasEl.value;
-  if (!canvas) return;
-  canvas.setPointerCapture(ev.pointerId);
+    gridCanvas.width = canvasEl.value.width;
+    gridCanvas.height = canvasEl.value.height;
+    gridCtx = gridCanvas.getContext('2d');
+    if (gridCtx) {
+        const colCellNum = Math.floor(canvasCssWidth / cellSize);
+        const rowCellNum = Math.floor(canvasCssHeight / cellSize);
+        drawStaticGrid(colCellNum, rowCellNum);
+    }
 
-  const pos = getPointerPos(ev);
-  draggingIndex = hitTestPoint(pos);
-  if (draggingIndex != null) {
-    canvas.style.cursor = 'grabbing';
-  }
-  requestDraw();
-}
+    if (!dragDots.length) {
+        const dot1 = { x: canvasCssWidth * 0.5, y: canvasCssHeight * 0.25 };
+        const dot2 = { x: canvasCssWidth * 0.25, y: canvasCssHeight * 0.75 };
+        const dot3 = { x: canvasCssWidth * 0.75, y: canvasCssHeight * 0.75 };
+        dragDots.push(dot1, dot2, dot3);
+    }
 
-const onPointerMove = (ev: PointerEvent) => {
-  const canvas = canvasEl.value;
-  if (!canvas) return;
+    for (const dot of dragDots) {
+        if (dot.x > canvasCssWidth) {
+            dot.x = canvasCssWidth;
+        }
+        if (dot.y > canvasCssHeight) {
+            dot.y = canvasCssHeight;
+        }
+    }
+    requestDraw();
+};
 
-  const pos = getPointerPos(ev);
+const dist2 = (v1: Vec2, v2: Vec2) => {
+    return (v1.x - v2.x) * (v1.x - v2.x) + (v1.y - v2.y) * (v1.y - v2.y);
+};
 
-  if (!pointerDown) {
-    hoveringIndex = hitTestPoint(pos);
-    canvas.style.cursor = hoveringIndex != null ? 'grab' : '';
-    return;
-  }
+const onPointerDown = (e: PointerEvent) => {
+    if (!canvasEl.value || hoveringIndex === null) {
+        return;
+    }
 
-  if (draggingIndex == null) return;
+    draggingIndex = hoveringIndex;
+    canvasEl.value.style.cursor = "grabbing";
+    try {
+        canvasEl.value.setPointerCapture(e.pointerId);
+    } catch { }
+};
 
-  const { w, h } = getCanvasSizeCss();
-  points.value[draggingIndex] = {
-    x: clamp(pos.x, pointRadius, w - pointRadius),
-    y: clamp(pos.y, pointRadius, h - pointRadius)
-  };
+const onPointerMove = (e: PointerEvent) => {
+    if (!canvasEl.value) {
+        return;
+    }
+    const { left, top } = canvasEl.value.getBoundingClientRect();
+    const pos = { x: e.clientX - left, y: e.clientY - top };
+    if (draggingIndex === null) {
+        for (let i = 0; i < dragDots.length; i++) {
+            const dot = dragDots[i];
+            if (dist2(pos, dot) <= draggableDotPadding * draggableDotPadding) {
+                hoveringIndex = i;
+                canvasEl.value.style.cursor = "grab";
+                return;
+            }
+        }
+        hoveringIndex = null;
+        return;
+    }
 
-  requestDraw();
-}
+    const draggingDot = dragDots[draggingIndex];
+    draggingDot.x = Math.max(draggableDotSize, Math.min(canvasCssWidth - draggableDotSize, pos.x));
+    draggingDot.y = Math.max(draggableDotSize, Math.min(canvasCssHeight - draggableDotSize, pos.y));
 
-const endDrag = (ev: PointerEvent) => {
-  pointerDown = false;
-  const canvas = canvasEl.value;
-  if (!canvas) return;
-  try {
-    canvas.releasePointerCapture(ev.pointerId);
-  } catch {
-    // ignore
-  }
-  draggingIndex = null;
-  canvas.style.cursor = hoveringIndex != null ? 'grab' : '';
-  requestDraw();
-}
+    requestDraw();
+};
+
+const onEndDrag = (e: PointerEvent) => {
+    if (!canvasEl.value) {
+        return;
+    }
+    draggingIndex = null;
+    canvasEl.value.style.cursor = hoveringIndex === null ? "" : "grab";
+    try {
+        canvasEl.value.releasePointerCapture(e.pointerId);
+    } catch { }
+};
 
 onMounted(() => {
-  const canvas = canvasEl.value;
-  if (!canvas) return;
+    if (!canvasEl.value || !contentEl.value) {
+        return;
+    }
+    ctx = canvasEl.value.getContext('2d');
+    if (!ctx) {
+        return;
+    }
 
-  ctx = canvas.getContext('2d');
-  if (!ctx) return;
-
-  canvas.addEventListener('pointerdown', onPointerDown);
-  canvas.addEventListener('pointermove', onPointerMove);
-  canvas.addEventListener('pointerup', endDrag);
-  canvas.addEventListener('pointercancel', endDrag);
-  canvas.addEventListener('pointerleave', endDrag);
-
-  canvas.style.cursor = '';
-
-  ro = new ResizeObserver(() => resizeCanvas());
-  if (rootEl.value) ro.observe(rootEl.value);
-
-  resizeCanvas();
+    ro = new ResizeObserver(resizeCanvas);
+    ro.observe(contentEl.value);
+    canvasEl.value.addEventListener("pointerdown", onPointerDown);
+    canvasEl.value.addEventListener("pointermove", onPointerMove);
+    canvasEl.value.addEventListener("pointerup", onEndDrag);
+    canvasEl.value.addEventListener("pointerleave", onEndDrag);
+    canvasEl.value.addEventListener('pointercancel', onEndDrag);
 });
 
 onBeforeUnmount(() => {
-  const canvas = canvasEl.value;
-  if (canvas) {
-    canvas.removeEventListener('pointerdown', onPointerDown);
-    canvas.removeEventListener('pointermove', onPointerMove);
-    canvas.removeEventListener('pointerup', endDrag);
-    canvas.removeEventListener('pointercancel', endDrag);
-    canvas.removeEventListener('pointerleave', endDrag);
-  }
+    if (ro) {
+        ro.disconnect();
+    }
+    if (raHandle !== null) {
+        cancelAnimationFrame(raHandle);
+        raHandle = null;
+    }
 
-  if (ro && rootEl.value) ro.unobserve(rootEl.value);
-  ro = null;
-
-  if (rafId != null) {
-    cancelAnimationFrame(rafId);
-    rafId = null;
-  }
+    if (canvasEl.value) {
+        canvasEl.value.removeEventListener("pointerdown", onPointerDown);
+        canvasEl.value.removeEventListener("pointermove", onPointerMove);
+        canvasEl.value.removeEventListener("pointerup", onEndDrag);
+        canvasEl.value.removeEventListener("pointerleave", onEndDrag);
+        canvasEl.value.removeEventListener('pointercancel', onEndDrag);
+    }
 });
+
 </script>
 
 <style scoped>
 .triangle-grid-root {
-  width: 100%;
-  height: 420px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 10px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.9);
+    width: 100%;
+    height: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.triangle-grid-canvas-wrapper {
+    width: 100%;
+    flex: 1;
 }
 
 .triangle-grid-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  touch-action: none;
-  cursor: default;
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
 }
 
-.triangle-grid-canvas:active {
-  cursor: grabbing;
+.triangle-grid-hint {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #6b7280;
 }
 </style>
