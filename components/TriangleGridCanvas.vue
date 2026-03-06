@@ -37,7 +37,7 @@ const dpr = Math.max(1, Math.floor(((typeof window !== 'undefined' ? window.devi
 let ro: ResizeObserver;
 let raHandle: number | null = null;
 let ctx: CanvasRenderingContext2D | null;
-let gridCanvas: HTMLCanvasElement = document.createElement('canvas');
+let gridCanvas: HTMLCanvasElement | null = null;
 let gridCtx: CanvasRenderingContext2D | null = null;
 
 
@@ -182,14 +182,18 @@ const resizeCanvas = () => {
     canvasEl.value.height = height * dpr;
     canvasEl.value.width = width * dpr;
 
-
-    gridCanvas.width = canvasEl.value.width;
-    gridCanvas.height = canvasEl.value.height;
-    gridCtx = gridCanvas.getContext('2d');
-    if (gridCtx) {
-        const colCellNum = Math.floor(canvasCssWidth / cellSize);
-        const rowCellNum = Math.floor(canvasCssHeight / cellSize);
-        drawStaticGrid(colCellNum, rowCellNum);
+    if (typeof document !== 'undefined') {
+        if (!gridCanvas) {
+            gridCanvas = document.createElement('canvas');
+        }
+        gridCanvas.width = canvasEl.value.width;
+        gridCanvas.height = canvasEl.value.height;
+        gridCtx = gridCanvas.getContext('2d');
+        if (gridCtx) {
+            const colCellNum = Math.floor(canvasCssWidth / cellSize);
+            const rowCellNum = Math.floor(canvasCssHeight / cellSize);
+            drawStaticGrid(colCellNum, rowCellNum);
+        }
     }
 
     if (!dragDots.length) {
