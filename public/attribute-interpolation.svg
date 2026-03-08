@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="560" viewBox="0 0 760 560">
+  <defs>
+    <style>
+      .title { font: 700 28px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; fill: rgba(15, 23, 42, 0.92); }
+      .subtitle { font: 400 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; fill: rgba(100, 116, 139, 0.92); }
+      .label { font: 700 14px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; fill: rgba(15, 23, 42, 0.92); }
+      .small { font: 500 12px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; fill: rgba(71, 85, 105, 0.92); }
+      .box { stroke: rgba(148, 163, 184, 0.75); stroke-width: 1.5; fill: rgba(148, 163, 184, 0.10); }
+      .tri { stroke: rgba(99, 102, 241, 0.78); stroke-width: 2.4; fill: url(#triFill); }
+      .grid { stroke: rgba(148, 163, 184, 0.35); stroke-width: 1; }
+      .pt { stroke: rgba(255, 255, 255, 1); stroke-width: 2; }
+      .ptA { fill: rgba(239, 68, 68, 0.95); }
+      .ptB { fill: rgba(34, 197, 94, 0.95); }
+      .ptC { fill: rgba(59, 130, 246, 0.95); }
+      .p { fill: rgba(99, 102, 241, 0.95); stroke: rgba(255, 255, 255, 1); stroke-width: 2; }
+      .dash { stroke: rgba(99, 102, 241, 0.55); stroke-width: 1.8; stroke-dasharray: 6 6; }
+      .call { stroke: rgba(99, 102, 241, 0.75); stroke-width: 1.8; stroke-linecap: round; }
+    </style>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="rgba(2, 6, 23, 0.18)" />
+    </filter>
+    <linearGradient id="triFill" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(239, 68, 68, 0.22)"/>
+      <stop offset="50%" stop-color="rgba(99, 102, 241, 0.14)"/>
+      <stop offset="100%" stop-color="rgba(34, 197, 94, 0.20)"/>
+    </linearGradient>
+    <linearGradient id="mixFill" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(239, 68, 68, 0.95)"/>
+      <stop offset="45%" stop-color="rgba(34, 197, 94, 0.95)"/>
+      <stop offset="100%" stop-color="rgba(59, 130, 246, 0.95)"/>
+    </linearGradient>
+  </defs>
+
+  <text x="380" y="64" text-anchor="middle" class="title">顶点颜色插值（Interpolation）</text>
+  <text x="380" y="94" text-anchor="middle" class="subtitle">三角形内部任意片元 P 的颜色由三个顶点颜色按权重混合得到</text>
+
+  <g filter="url(#shadow)">
+    <rect x="56" y="126" width="430" height="380" rx="18" class="box" />
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="506" y="126" width="238" height="380" rx="18" class="box" />
+  </g>
+
+  <text x="80" y="160" class="label">三角形与片元</text>
+  <text x="530" y="160" class="label">结果颜色</text>
+
+  <g opacity="1">
+    <line x1="92" y1="206" x2="450" y2="206" class="grid"/>
+    <line x1="92" y1="244" x2="450" y2="244" class="grid"/>
+    <line x1="92" y1="282" x2="450" y2="282" class="grid"/>
+    <line x1="92" y1="320" x2="450" y2="320" class="grid"/>
+    <line x1="92" y1="358" x2="450" y2="358" class="grid"/>
+    <line x1="92" y1="396" x2="450" y2="396" class="grid"/>
+    <line x1="92" y1="434" x2="450" y2="434" class="grid"/>
+
+    <line x1="92" y1="190" x2="92" y2="456" class="grid"/>
+    <line x1="140" y1="190" x2="140" y2="456" class="grid"/>
+    <line x1="188" y1="190" x2="188" y2="456" class="grid"/>
+    <line x1="236" y1="190" x2="236" y2="456" class="grid"/>
+    <line x1="284" y1="190" x2="284" y2="456" class="grid"/>
+    <line x1="332" y1="190" x2="332" y2="456" class="grid"/>
+    <line x1="380" y1="190" x2="380" y2="456" class="grid"/>
+    <line x1="428" y1="190" x2="428" y2="456" class="grid"/>
+    <line x1="450" y1="190" x2="450" y2="456" class="grid"/>
+  </g>
+
+  <polygon points="130,430 430,410 340,210" class="tri" />
+
+  <circle cx="130" cy="430" r="8" class="pt ptA"/>
+  <circle cx="430" cy="410" r="8" class="pt ptB"/>
+  <circle cx="340" cy="210" r="8" class="pt ptC"/>
+
+  <text x="130" y="458" text-anchor="middle" class="small">V0: 红色</text>
+  <text x="430" y="458" text-anchor="middle" class="small">V1: 绿色</text>
+  <text x="340" y="196" text-anchor="middle" class="small">V2: 蓝色</text>
+
+  <circle cx="290" cy="330" r="7.5" class="p" />
+  <text x="300" y="322" class="label">P</text>
+  <text x="300" y="344" class="small">片元位置</text>
+
+  <line x1="290" y1="330" x2="130" y2="430" class="dash"/>
+  <line x1="290" y1="330" x2="430" y2="410" class="dash"/>
+  <line x1="290" y1="330" x2="340" y2="210" class="dash"/>
+
+  <line x1="520" y1="206" x2="730" y2="206" class="call"/>
+  <text x="530" y="230" class="small">P 的颜色 ≈ w0·C0 + w1·C1 + w2·C2</text>
+  <text x="530" y="250" class="small">w0 + w1 + w2 = 1</text>
+
+  <g filter="url(#shadow)">
+    <rect x="530" y="280" width="200" height="74" rx="14" fill="rgba(15, 23, 42, 0.04)" stroke="rgba(148, 163, 184, 0.75)" stroke-width="1.5"/>
+  </g>
+  <rect x="546" y="296" width="168" height="42" rx="10" fill="rgba(99, 102, 241, 0.55)"/>
+  <text x="625" y="366" text-anchor="middle" class="small">混合后的颜色</text>
+
+  <g>
+    <circle cx="546" cy="408" r="6.5" class="pt ptA"/>
+    <text x="560" y="412" class="small">C0</text>
+    <circle cx="596" cy="408" r="6.5" class="pt ptB"/>
+    <text x="610" y="412" class="small">C1</text>
+    <circle cx="646" cy="408" r="6.5" class="pt ptC"/>
+    <text x="660" y="412" class="small">C2</text>
+  </g>
+
+  <text x="530" y="462" class="small">同样的插值也适用于法线等属性</text>
+</svg>

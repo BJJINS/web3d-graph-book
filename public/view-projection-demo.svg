@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="760" viewBox="0 0 760 760">
+  <defs>
+    <style>
+      .title { font: 700 28px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; fill: rgba(15, 23, 42, 0.92); }
+      .subtitle { font: 400 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; fill: rgba(100, 116, 139, 0.92); }
+      .label { font: 700 14px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; fill: rgba(15, 23, 42, 0.92); }
+      .small { font: 500 12px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; fill: rgba(71, 85, 105, 0.92); }
+      .box { stroke: rgba(148, 163, 184, 0.75); stroke-width: 1.5; fill: rgba(148, 163, 184, 0.10); }
+      .plane { fill: rgba(148, 163, 184, 0.12); stroke: rgba(148, 163, 184, 0.55); stroke-width: 1.5; }
+      .objFill { fill: rgba(99, 102, 241, 0.12); stroke: rgba(99, 102, 241, 0.78); stroke-width: 2.2; }
+      .objLight { fill: rgba(99, 102, 241, 0.08); stroke: rgba(99, 102, 241, 0.55); stroke-width: 1.8; }
+      .eyeStroke { stroke: rgba(15, 23, 42, 0.82); stroke-width: 2.2; fill: rgba(255, 255, 255, 0.95); }
+      .pupil { fill: rgba(99, 102, 241, 0.95); }
+      .ray { stroke: rgba(99, 102, 241, 0.75); stroke-width: 2.2; stroke-linecap: round; }
+      .rayDash { stroke: rgba(99, 102, 241, 0.55); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: 6 6; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(99, 102, 241, 0.75)" />
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="rgba(2, 6, 23, 0.18)" />
+    </filter>
+    <radialGradient id="sphereGlow" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="rgba(99, 102, 241, 0.28)" />
+      <stop offset="60%" stop-color="rgba(99, 102, 241, 0.14)" />
+      <stop offset="100%" stop-color="rgba(99, 102, 241, 0.08)" />
+    </radialGradient>
+  </defs>
+
+  <text x="380" y="62" text-anchor="middle" class="title">从 3D 到 2D：投影与视线方向</text>
+  <text x="380" y="92" text-anchor="middle" class="subtitle">同一组 3D 物体，从不同观察方向投影到屏幕上会得到不同的二维结果</text>
+
+  <g filter="url(#shadow)">
+    <rect x="56" y="126" width="648" height="274" rx="18" class="box" />
+  </g>
+  <text x="80" y="160" class="label">视角 A</text>
+  <text x="80" y="182" class="small">斜向观察 → 立方体与球体的相对位置不同</text>
+
+  <g filter="url(#shadow)">
+    <rect x="56" y="430" width="648" height="274" rx="18" class="box" />
+  </g>
+  <text x="80" y="464" class="label">视角 B</text>
+  <text x="80" y="486" class="small">换一个方向观察 → 投影后的形状位置/遮挡关系变化</text>
+
+  <g>
+    <ellipse cx="118" cy="262" rx="34" ry="20" class="eyeStroke" />
+    <circle cx="118" cy="262" r="7.5" class="pupil" />
+    <path d="M 88 262 C 96 250, 108 244, 118 244 C 128 244, 140 250, 148 262" fill="none" stroke="rgba(15, 23, 42, 0.38)" stroke-width="1.6"/>
+  </g>
+
+  <g>
+    <ellipse cx="330" cy="520" rx="34" ry="20" class="eyeStroke" />
+    <circle cx="330" cy="528" r="7.5" class="pupil" />
+    <path d="M 300 520 C 308 508, 320 502, 330 502 C 340 502, 352 508, 360 520" fill="none" stroke="rgba(15, 23, 42, 0.38)" stroke-width="1.6"/>
+  </g>
+
+  <polygon points="220,320 408,320 466,246 278,246" class="plane" />
+  <polygon points="240,672 428,672 486,598 298,598" class="plane" />
+
+  <g>
+    <ellipse cx="374" cy="276" rx="26" ry="22" fill="url(#sphereGlow)" stroke="rgba(99, 102, 241, 0.78)" stroke-width="2.2"/>
+  </g>
+
+  <g>
+    <polygon points="300,300 346,300 358,270 312,270" class="objLight" />
+    <polygon points="300,300 300,262 312,234 312,270" class="objFill" />
+    <polygon points="346,300 346,262 358,234 358,270" class="objFill" />
+    <polygon points="300,262 346,262 358,234 312,234" class="objFill" />
+  </g>
+
+  <g>
+    <ellipse cx="394" cy="628" rx="26" ry="22" fill="url(#sphereGlow)" stroke="rgba(99, 102, 241, 0.78)" stroke-width="2.2"/>
+  </g>
+  <g>
+    <polygon points="320,652 366,652 378,622 332,622" class="objLight" />
+    <polygon points="320,652 320,614 332,586 332,622" class="objFill" />
+    <polygon points="366,652 366,614 378,586 378,622" class="objFill" />
+    <polygon points="320,614 366,614 378,586 332,586" class="objFill" />
+  </g>
+
+  <line x1="152" y1="262" x2="214" y2="262" class="ray" marker-end="url(#arrow)" />
+  <line x1="330" y1="542" x2="330" y2="566" class="ray" marker-end="url(#arrow)" />
+
+  <line x1="214" y1="262" x2="278" y2="246" class="rayDash" />
+  <line x1="214" y1="262" x2="240" y2="320" class="rayDash" />
+
+  <line x1="330" y1="566" x2="298" y2="598" class="rayDash" />
+  <line x1="330" y1="566" x2="486" y2="598" class="rayDash" />
+
+  <g filter="url(#shadow)">
+    <rect x="520" y="196" width="164" height="164" rx="16" class="box" />
+  </g>
+  <text x="602" y="186" text-anchor="middle" class="small">二维视平面（屏幕）</text>
+  <rect x="546" y="222" width="62" height="62" rx="8" class="objFill" />
+  <text x="602" y="346" text-anchor="middle" class="small">视角 A 的投影</text>
+
+  <g filter="url(#shadow)">
+    <rect x="520" y="500" width="164" height="164" rx="16" class="box" />
+  </g>
+  <text x="602" y="490" text-anchor="middle" class="small">二维视平面（屏幕）</text>
+  <rect x="578" y="544" width="56" height="56" rx="8" class="objFill" />
+  <circle cx="640" cy="574" r="24" fill="url(#sphereGlow)" stroke="rgba(99, 102, 241, 0.78)" stroke-width="2.2"/>
+  <text x="602" y="650" text-anchor="middle" class="small">视角 B 的投影</text>
+</svg>
