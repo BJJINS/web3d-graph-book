@@ -8,7 +8,7 @@ export default defineConfig({
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: '主页', link: '/' },
-      { text: 'WebGPU', link: '/WebGPU/fundamentals' },
+      { text: 'WebGPU', link: '/WebGPU/introduction' },
     ],
 
     sidebar: {
@@ -16,15 +16,21 @@ export default defineConfig({
         {
           text: 'WebGPU',
           items: [
-            { text: '基础知识', link: '/WebGPU/fundamentals' },
+            { text: '介绍', link: '/WebGPU/introduction' },
+            {
+              text: '图形渲染', link: '/WebGPU/graphicsRendering',
+              items: [
+                { text: '绘制一个三角形', link: '/WebGPU/triangleExample' },
+              ]
+            },
           ]
         },
       ],
     },
 
     outline: {
-      level: "deep",
-      label: '页面目录'
+      label: "目录",
+      level: "deep"
     },
 
     socialLinks: [

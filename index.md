@@ -9,7 +9,7 @@ hero:
   actions:
     - theme: brand
       text: WebGPU
-      link: /WebGPU/fundamentals
+      link: /WebGPU/introduction
 
 features:
   - title: Feature A
