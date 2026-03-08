@@ -62,6 +62,21 @@ import TriangleGridCanvas from '../components/TriangleGridCanvas.vue'
 
 ### 3. 图元装配（Primitive Assembly）
 
+介绍图元装配之前，我要先介绍一下什么是**标准化设备坐标（NDC, Normalized Device Coordinates）**：
+
+- 对 WebGPU 来说，`x`、`y` 的 NDC 范围都是 `[-1, 1]`
+- 深度 `z` 的 NDC 范围是 `[0, 1]`，`z = 0` 代表近平面，`z = 1` 代表远平面
+
+:::tip
+webGL的深度 `z` 的 NDC 范围是 `[-1, 1]`，`z = -1` 代表近平面，`z = 1` 代表远平面
+:::
+
+你可以把 NDC 想象成一个固定的立方体：只要一个点在这个立方体内部，它就有机会被映射到屏幕上的某个像素；如果点落在立方体之外，就会在剪裁阶段被丢弃。
+
+下面这张图示意了 WebGPU 中从剪裁空间到 NDC 的关系以及 NDC 的取值范围：
+
+![WebGPU 标准化设备坐标（NDC）示意图](/webgpu-ndc.svg)
+
 这个阶段主要由两个任务：
 
 1. 图元组装
