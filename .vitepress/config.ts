@@ -3,12 +3,12 @@ import { defineConfig } from 'vitepress';
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: "WebGPU与图形渲染",
-  description: "一个关于WebGPU与图形渲染的指南",
+  description: "一个基于WebGPU的图形渲染的指南",
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
   ],
   themeConfig: {
-    // https://vitepress.dev/reference/default-theme-config
+    logo: '/favicon.svg',
     nav: [
       { text: '主页', link: '/' },
       { text: 'WebGPU', link: '/WebGPU/introduction' },

@@ -2,8 +2,9 @@
 layout: home
 
 hero:
+  image: /favicon.svg
   name: "WebGPU与图形渲染"
-  text: "一个关于WebGPU与图形渲染的指南"
+  text: "一个基于WebGPU的图形渲染的指南"
   tagline: 从基础到实践的完整学习路径
   # actions:
   #   - theme: brand
