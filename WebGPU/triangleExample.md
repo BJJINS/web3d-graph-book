@@ -93,9 +93,11 @@ const pipeline = device.createRenderPipeline({
   layout: "auto",
   vertex: {
     module,
+    entryPoint: "vs",
   },
   fragment: {
     module,
+    entryPoint: "fs",
     targets: [{ format: presentationFormat }],
   },
 });
@@ -108,6 +110,8 @@ const pipeline = device.createRenderPipeline({
 `vertex` 和 `fragment` 用来**配置**上一章[图形渲染流程](/WebGPU/graphicsRendering)的顶点着色器和片元着色器。
 
 `module` 是一个 `GPUShaderModule` 对象，用于存储 WGSL(WebGPU Shader Language)着色器代码。我们稍后会创建 `module` ，并在其中定义顶点着色器和片元着色器。
+
+`entryPoint` 是一个可选参数，用于指定着色器模块中的入口函数。这里我们将它设置为 "vs" 和 "fs"，表示顶点着色器和片元着色器的入口函数分别是 "vs" 和 "fs"。
 
 `targets` 定义片元着色器（Fragment Shader）最终要把颜色输出到哪里、以及输出的格式和规则 的核心配置项。
 
@@ -198,6 +202,29 @@ const module = device.createShaderModule({
 在 `vs` 函数中，分别表示顶点的位置坐标 x, y, z, w。x, y, z 分别表示顶点在 3 维空间中的位置坐标，w 表示顶点的齐次坐标。现在我们不需要知道 w 的含义，设置为 1 即可，只需要知道 x, y, z。
 :::
 
+::: tip
+WGSL 代码中的 `vs` 函数对应 `pipeline` 中的 `vertex.entryPoint` 配置项。 `fs` 函数对应 `pipeline` 中的 `fragment.entryPoint` 配置项。
+
+```js
+const pipeline = device.createRenderPipeline({
+  ...
+  vertex: {
+    module,
+    entryPoint: "vs",
+  },
+  fragment: {
+    module,
+    entryPoint: "fs",
+    targets: [{ format: presentationFormat }],
+  },
+  ...
+});
+```
+一个 WGSL 代码中可以定义多个顶点着色器和多个片元着色器入口函数。如果你有多个顶点着色器和多个片元着色器入口函数，就需要手动指定 `entryPoint` 。
+
+在本例中 `entryPoint` 可以省略，因为我们的 WGSL 代码中只有一个顶点着色器和一个片元着色器入口函数，所以 WebGPU 可以自动识别。
+:::
+
 ## 绘制命令
 
 上面的渲染管线只是配置了渲染流程。我们需要创建绘制命令（Draw Command）来告诉 GPU 如何绘制。
@@ -226,7 +253,7 @@ device.queue.submit([commandBuffer]);
 
 `passEncoder.setPipeline(pipeline)` 用于设置渲染通道编码器的渲染管线（Render Pipeline）。渲染管线是一个包含了渲染流程配置的对象，我们在前面已经创建了一个渲染管线 `pipeline`，现在需要将它设置到渲染通道编码器中。
 
-`passEncoder.draw(3)` 用于绘制 3 个顶点。这里的 3 表示绘制执行3次，`vs` 函数执行3次。
+`passEncoder.draw(3)` 用于绘制 3 个顶点。这里的 3 表示绘制执行 3 次，`vs` 函数执行 3 次。
 
 `passEncoder.end()` 用于结束渲染通道编码器。
 
@@ -242,9 +269,11 @@ device.queue.submit([commandBuffer]);
 {
   view: context.getCurrentTexture().createView(),
   loadOp: "clear",
+  clearValue: { r: 0, g: 1, b: 0, a: 1 },
   storeOp: "store",
 }
 ```
+
 `view` 用于指定渲染目标（Render Target），这里我们使用 `context.getCurrentTexture().createView()` 创建一个渲染目标视图（Render Target View）。
 
 直接说“渲染目标视图”，你可能会感到困惑。我们来解释一下：
@@ -258,14 +287,23 @@ device.queue.submit([commandBuffer]);
 <canvas width="1000" height="500"></canvas>
 // getCurrentTexture() 返回的图片尺寸是 1000x500
 ```
+
 `createView()` 方法用于创建一个渲染目标视图，渲染目标视图让 GPU 可以将渲染结果绘制到上面说的图片中。
 ::: info
 createView 方法是可选的，也就是说：view 可以直接等于 context.getCurrentTexture()。
 如果你写 `view = context.getCurrentTexture()`，那么 WebGPU 会在内部调用 `createView` 方法创建一个渲染目标视图。
 :::
 
+`loadOp` 用于指定渲染目标的加载操作（Load Operation），可选值有 `"clear"` 和 `"load"`。
+这里我们设置为 `"clear"`，表示在绘制前将渲染目标清除为 `clearValue` 本例中为绿色。
+`"load"` 表示在绘制前将渲染目标的内容加载到内存中。
 
+`storeOp` 用于指定渲染目标的存储操作（Store Operation），可选值有 `"store"` 和 `"discard"`。
+这里我们设置为 `"store"`，表示在绘制完成后将渲染目标的内容存储到内存中。
+`"discard"` 表示在绘制完成后将渲染目标的内容丢弃，不存储到内存中。
 
-`loadOp` 用于指定渲染目标的加载操作（Load Operation），这里我们设置为 `"clear"`，表示在绘制前将渲染目标清除为指定的清除颜色。
+## 在线编辑与预览
 
-`storeOp` 用于指定渲染目标的存储操作（Store Operation），这里我们设置为 `"store"`，表示在绘制完成后将渲染目标的内容存储到内存中。
+<WebGpuTrianglePlayground />
+
+现在你可以在在线编辑区编辑代码，试着修改 `loadOp` 、`storeOp` 等参数然后点击“更新预览”按钮即可预览渲染结果。

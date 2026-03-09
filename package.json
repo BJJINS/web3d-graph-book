@@ -13,7 +13,9 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@monaco-editor/loader": "^1.7.0",
     "@types/node": "^25.3.3",
+    "monaco-editor": "^0.55.1",
     "svgo": "^3.3.2",
     "typescript": "^5.9.3",
     "vitepress": "^1.6.4",
