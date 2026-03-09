@@ -200,7 +200,7 @@ const module = device.createShaderModule({
 
 ## 绘制命令
 
-上面的渲染管线只是配置了渲染流程。我们需要创建一个绘制命令（Draw Command）来告诉 GPU 如何绘制。
+上面的渲染管线只是配置了渲染流程。我们需要创建绘制命令（Draw Command）来告诉 GPU 如何绘制。
 
 ```js
 const commandEncoder = device.createCommandEncoder();
