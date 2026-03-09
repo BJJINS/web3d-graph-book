@@ -2,8 +2,8 @@ import { defineConfig } from 'vitepress';
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "My Awesome Project",
-  description: "A VitePress Site",
+  title: "WebGPU与图形渲染",
+  description: "一个关于WebGPU与图形渲染的指南",
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
@@ -33,8 +33,5 @@ export default defineConfig({
       level: "deep"
     },
 
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/vuejs/vitepress' }
-    ]
   }
 });

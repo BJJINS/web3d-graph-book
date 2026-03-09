@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vitepress dev",
-    "optimize:svg": "svgo -f public --config=svgo.config.mjs",
+    "optimize:svg": "find public -type f -name '*.svg' -exec svgo --config=svgo.config.mjs {} +",
     "build": "pnpm run optimize:svg && vitepress build",
     "preview": "vitepress preview"
   },
