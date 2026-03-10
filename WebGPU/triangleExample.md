@@ -70,7 +70,7 @@ context.configure({
 });
 ```
 
-我们从画布中获取一个 "webgpu" 上下文。我们会询问系统首选的画布格式是什。可能是 `rgba8unorm` 或 `bgra8unorm`。合适的选择可以让用户的系统以最快的速度运行。
+我们从画布中获取一个 “webgpu” 上下文。我们会询问系统首选的画布格式是什。可能是 `rgba8unorm` 或 `bgra8unorm`。合适的选择可以让用户的系统以最快的速度运行。
 
 ::: tip rgba8unorm vs bgra8unorm
 `rgba8unorm` 和 `bgra8unorm` 都是 8 位无符号整数格式，每个分量占用 8 位，取值范围是 0 到 255。它们的主要区别在于颜色分量的排列顺序。
@@ -109,15 +109,15 @@ const pipeline = device.createRenderPipeline({
 });
 ```
 
-现在我们使用 `GPUDevice` 创建了一个渲染管线 `GPURenderPipeline` 。 `label` 是一个可选参数，用于给渲染管线起一个名字。这里我们将它设置为 "triangle pipeline"。
+现在我们使用 `GPUDevice` 创建了一个渲染管线 `GPURenderPipeline` 。 `label` 是一个可选参数，用于给渲染管线起一个名字。这里我们将它设置为 “triangle pipeline”。
 
-`layout` 是一个可选参数，用于指定渲染管线的布局。这里我们将它设置为 "auto"，表示让 WebGPU 自动选择布局。实际上，我们也可以手动指定布局，但是手动指定布局需要我们对 WebGPU 的布局系统有一定的了解，这里我们先不展开。
+`layout` 是一个可选参数，用于指定渲染管线的布局。这里我们将它设置为 “auto”，表示让 WebGPU 自动选择布局。实际上，我们也可以手动指定布局，但是手动指定布局需要我们对 WebGPU 的布局系统有一定的了解，这里我们先不展开。
 
 `vertex` 和 `fragment` 用来**配置**上一章[图形渲染流程](/WebGPU/graphicsRendering)的顶点着色器和片元着色器。
 
 `module` 是一个 `GPUShaderModule` 对象，用于存储 WGSL(WebGPU Shader Language)着色器代码。我们稍后会创建 `module` ，并在其中定义顶点着色器和片元着色器。
 
-`entryPoint` 是一个可选参数，用于指定着色器模块中的入口函数。这里我们将它设置为 "vs" 和 "fs"，表示顶点着色器和片元着色器的入口函数分别是 "vs" 和 "fs"。
+`entryPoint` 是一个可选参数，用于指定着色器模块中的入口函数。这里我们将它设置为 “vs” 和 “fs”，表示顶点着色器和片元着色器的入口函数分别是 “vs” 和 “fs”。
 
 `targets` 定义片元着色器（Fragment Shader）最终要把颜色输出到哪里、以及输出的格式和规则 的核心配置项。
 
@@ -142,7 +142,7 @@ const module = device.createShaderModule({
             );
             return positions[vertexIndex];
         }
-
+        // WGSL 片元着色器：输出 @location(0) 对应 targets[0]
         @fragment
         fn fs() -> @location(0) vec4f {
             return vec4f(1.0, 0.0, 0.0, 1.0);
@@ -151,7 +151,7 @@ const module = device.createShaderModule({
 });
 ```
 
-`module` 是一个 `GPUShaderModule` 对象，用于存储 WGSL(WebGPU Shader Language)着色器代码。 WGSL 是在 GPU 中运行的着色器语言，所以我们需要将 WGSL 代码以字符串的形式传入 `module` 中。
+`module` 是一个 `GPUShaderModule` 对象，用于存储 WGSL（WebGPU Shader Language）着色器代码。 WGSL 是在 GPU 中运行的着色器语言，所以我们需要将 WGSL 代码以字符串的形式传入 `module` 中。
 
 `@vertex` 和 `@fragment` 是 WGSL 中的装饰器（Decorator），用于标记顶点着色器函数。 上面的 `vs` 函数就是一个顶点着色器入口函数，上面的 `fs` 函数就是一个片元着色器入口函数。
 
@@ -243,9 +243,11 @@ const passEncoder = commandEncoder.beginRenderPass({
         {
             view: context.getCurrentTexture().createView(),
             loadOp: "clear",
+            clearValue: { r: 0, g: 1, b: 0, a: 1 },
             storeOp: "store",
         },
     ],
+    // 如果 pipeline.targets 有第二个 target，那么这里也需要提供第二个 colorAttachment
 });
 passEncoder.setPipeline(pipeline);
 passEncoder.draw(3);
@@ -308,6 +310,26 @@ createView 方法是可选的，也就是说：view 可以直接等于 context.g
 `storeOp` 用于指定渲染目标的存储操作（Store Operation），可选值有 `"store"` 和 `"discard"`。
 这里我们设置为 `"store"`，表示在绘制完成后将渲染目标的内容存储到内存中。
 `"discard"` 表示在绘制完成后将渲染目标的内容丢弃，不存储到内存中。
+
+
+::: tip
+你应该注意到了`colorAttachments`、`pipeline.fragment.targets` 都是数组，并且我们只定义了第一个元素，实际上它们也是有关系的。
+
+`pipeline.fragment.targets` 定义了渲染管线的“输出槽（output slots）”——也就是每个颜色输出的格式（format）、混合（blend）等状态；而在开始 render pass 时，`colorAttachments` 数组则把具体的纹理视（GPUTextureView）绑定到这些输出槽上。两者按索引一一对应。
+
+在 WGSL 着色器程序中：
+
+```wgsl
+@fragment
+fn fs() -> @location(0) vec4f {
+    return vec4f(1.0, 0.0, 0.0, 1.0);
+}
+```
+
+`@location(n)` 对应第 n 个输出槽（即 `pipeline.fragment.targets[n]`），render pass 中 `colorAttachments[n]` 则是该槽当前绑定的目标纹理视图。
+
+更准确的说法是：`pipeline` 定义“槽”的格式和行为，render pass 的 `colorAttachments` 绑定“具体的画布/纹理”。
+:::
 
 ## 在线编辑与预览
 

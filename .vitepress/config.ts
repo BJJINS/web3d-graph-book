@@ -10,7 +10,7 @@ export default defineConfig({
   themeConfig: {
     logo: '/favicon.svg',
     nav: [
-      { text: '主页', link: '/' },
+      { text: '主页', link: '/index' },
       { text: 'WebGPU', link: '/WebGPU/introduction' },
     ],
 
