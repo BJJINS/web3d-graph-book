@@ -5,7 +5,7 @@ export default defineConfig({
   lang: "zh-CN",
   title: "WebGPU与图形渲染",
   description: "一个基于WebGPU的图形渲染的指南",
-  titleTemplate: "%s | WebGPU与图形渲染",
+  titleTemplate: "WebGPU与图形渲染",
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
     ['meta', { name: 'description', content: '一个基于WebGPU的图形渲染的指南' }],

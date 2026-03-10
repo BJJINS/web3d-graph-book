@@ -1,6 +1,5 @@
 import DefaultTheme from 'vitepress/theme';
 import type { Theme } from 'vitepress';
-// import './custom.css';
 
 import TriangleGridCanvas from '../../components/TriangleGridCanvas.vue';
 import WebGpuTrianglePlayground from '../../components/WebGpuTrianglePlayground.vue';
