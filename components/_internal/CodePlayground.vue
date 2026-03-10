@@ -5,67 +5,31 @@
       <button class="wgp-btn" type="button" @click="openInNewTab">
         新标签页打开
       </button>
-      <span v-if="errorText" class="wgp-error">{{ errorText }}</span>
     </div>
 
-    <div class="wgp-stack">
+    <div>
       <div class="wgp-editor">
         <div :class="['wgp-tabs', { 'wgp-tabs-light': !isDark }]">
-          <button
-            class="wgp-tab"
-            :class="{ active: activeTab === 'html' }"
-            type="button"
-            @click="activeTab = 'html'"
-          >
+          <button class="wgp-tab" :class="{ active: activeTab === 'html' }" type="button" @click="activeTab = 'html'">
             HTML
           </button>
-          <button
-            class="wgp-tab"
-            :class="{ active: activeTab === 'css' }"
-            type="button"
-            @click="activeTab = 'css'"
-          >
+          <button class="wgp-tab" :class="{ active: activeTab === 'css' }" type="button" @click="activeTab = 'css'">
             CSS
           </button>
-          <button
-            class="wgp-tab"
-            :class="{ active: activeTab === 'js' }"
-            type="button"
-            @click="activeTab = 'js'"
-          >
+          <button class="wgp-tab" :class="{ active: activeTab === 'js' }" type="button" @click="activeTab = 'js'">
             JS
           </button>
         </div>
 
-        <MonacoEditor
-          v-if="activeTab === 'html'"
-          v-model="html"
-          language="html"
-          class="wgp-monaco"
-          :theme="monacoTheme"
-        />
-        <MonacoEditor
-          v-else-if="activeTab === 'css'"
-          v-model="css"
-          language="css"
-          class="wgp-monaco"
-          :theme="monacoTheme"
-        />
-        <MonacoEditor
-          v-else
-          v-model="js"
-          language="javascript"
-          class="wgp-monaco"
-          :theme="monacoTheme"
-        />
+        <MonacoEditor v-if="activeTab === 'html'" v-model="html" language="html" class="wgp-monaco"
+          :theme="monacoTheme" />
+        <MonacoEditor v-else-if="activeTab === 'css'" v-model="css" language="css" class="wgp-monaco"
+          :theme="monacoTheme" />
+        <MonacoEditor v-else v-model="js" language="javascript" class="wgp-monaco" :theme="monacoTheme" />
       </div>
 
-      <div class="wgp-preview">
-        <iframe
-          ref="iframeEl"
-          class="wgp-iframe"
-          sandbox="allow-scripts allow-same-origin"
-        ></iframe>
+      <div class="wgp-editor-preview-wrapper">
+        <iframe ref="iframeEl" class="wgp-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
       </div>
     </div>
   </div>
@@ -99,33 +63,30 @@ const html = ref(props.html);
 const css = ref(props.css);
 const js = ref(props.js);
 const iframeEl = ref<HTMLIFrameElement | null>(null);
-const errorText = ref("");
 
 const monacoTheme = computed(() => (isDark.value ? "vs-dark" : "vs"));
 
 const buildSrcDoc = () => {
-  const doc = [
-    "<!doctype html>",
-    "<html>",
-    "  <head>",
-    '    <meta charset="utf-8" />',
-    '    <meta name="viewport" content="width=device-width, initial-scale=1" />',
-    `    <style>${css.value}</style>`,
-    "  </head>",
-    "  <body>",
-    htmlBodyOnly(html.value),
-    '    <script type="module">',
-    js.value,
-    "    </scr" + "ipt>",
-    "  </body>",
-    "</html>",
-  ].join("\n");
+  let doc = `<!doctype html>
+  <html>
+    <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>${css.value}</style>
+    </head>
+    <body>
+    ${htmlBodyOnly(html.value)}
+    <script type="module">
+      ${js.value}
+    ${"</scr"}${"ipt>"}
+    </body>
+  </html>
+  `;
 
   return doc;
 };
 
 const run = () => {
-  errorText.value = "";
   const iframe = iframeEl.value;
   if (!iframe) return;
 
@@ -133,7 +94,6 @@ const run = () => {
 };
 
 const openInNewTab = () => {
-  errorText.value = "";
   const doc = buildSrcDoc();
   const blob = new Blob([doc], { type: "text/html" });
   const url = URL.createObjectURL(blob);
@@ -183,20 +143,6 @@ onMounted(() => {
   background: rgba(30, 41, 59, 0.8);
 }
 
-.wgp-error {
-  color: #ef4444;
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.wgp-stack {
-  display: grid;
-  grid-template-rows: 0.8fr 1.2fr;
-  min-height: 720px;
-}
-
 .wgp-editor {
   min-width: 0;
   border-bottom: 1px solid rgba(148, 163, 184, 0.25);
@@ -209,7 +155,7 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 
-.wgp-tabs-light > .wgp-tab {
+.wgp-tabs-light>.wgp-tab {
   background: rgba(226, 232, 240, 0.35);
   color: rgba(2, 6, 23, 0.9);
 }
@@ -231,11 +177,7 @@ onMounted(() => {
 }
 
 .wgp-monaco {
-  height: 100%;
-}
-
-.wgp-preview {
-  min-width: 0;
+  overflow: hidden;
 }
 
 .wgp-iframe {
@@ -245,15 +187,19 @@ onMounted(() => {
   display: block;
 }
 
-@media (max-width: 960px) {
-  .wgp-stack {
-    min-height: 720px;
-  }
-}
-
 .wgp-root:deep(.monaco-editor),
 .wgp-root:deep(.monaco-editor-background),
 .wgp-root:deep(.margin) {
   background: transparent !important;
+}
+
+.wgp-editor-preview-wrapper {
+  height: 300px;
+}
+
+@media (max-width: 960px) {
+  .wgp-editor-preview-wrapper {
+    height: 200px;
+  }
 }
 </style>

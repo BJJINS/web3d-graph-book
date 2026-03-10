@@ -100,6 +100,12 @@ onBeforeUnmount(() => {
 <style scoped>
 .monaco-container {
   width: 100%;
-  height: 100%;
+  height: 500px;
+}
+
+@media (max-width: 960px) {
+  .monaco-container {
+    height: 300px;
+  }
 }
 </style>

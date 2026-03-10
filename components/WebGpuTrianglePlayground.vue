@@ -17,7 +17,7 @@ const DEFAULT_HTML = `<!DOCTYPE html>
   </body>
 </html>`;
 
-const DEFAULT_CSS = `html, body { height: 100%; }`;
+const DEFAULT_CSS = "";
 
 const DEFAULT_JS = `if (!navigator.gpu) {
   throw Error("WebGPU not supported.");
