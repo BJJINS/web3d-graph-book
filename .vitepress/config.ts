@@ -23,7 +23,8 @@ export default defineConfig({
             {
               text: '图形渲染', link: '/WebGPU/graphicsRendering',
               items: [
-                { text: '绘制一个三角形', link: '/WebGPU/triangleExample' },
+                  { text: '绘制一个三角形', link: '/WebGPU/triangleExample' },
+                  { text: '顶点缓冲区', link: '/WebGPU/vertexBuffer' },
               ]
             },
           ]

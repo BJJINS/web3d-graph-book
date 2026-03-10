@@ -78,7 +78,7 @@ const buildSrcDoc = () => {
     ${htmlBodyOnly(html.value)}
     <script type="module">
       ${js.value}
-    ${"</scr"}${"ipt>"}
+      <\/script>
     </body>
   </html>
   `;
