@@ -1,5 +1,7 @@
 ---
 layout: home
+title: WebGPU与图形渲染
+description: 一个基于WebGPU的图形渲染的指南
 
 hero:
   image: /favicon.svg
@@ -23,4 +25,3 @@ features:
   - title: WGPU
     details: wgpu 是基于 WebGPU API 规范的、跨平台的、安全的、纯 Rust 图形 API。它是 Firefox、Servo 和 Deno 中 WebGPU 整合的核心。
 ---
-
