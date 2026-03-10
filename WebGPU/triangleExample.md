@@ -6,9 +6,9 @@
 
 首先我们需要先做一些准备工作：
 
-1. 访问浏览器的 Navigator 以查看是否支持 WebGPU。
-2. 如果支持 WebGPU，则使用 Navigator 获取 GPUAdapter。
-3. 使用 GPUAdapter 获取 GPUDevice。
+1. 检查浏览器是否支持 WebGPU（`navigator.gpu` 是否存在）。
+2. 通过 `navigator.gpu.requestAdapter()` 获取 `GPUAdapter`。
+3. 通过 `adapter.requestDevice()` 获取 `GPUDevice`。
 
 ```javascript
 if (!navigator.gpu) {
@@ -21,40 +21,37 @@ if (!adapter) {
 }
 
 const device = await adapter.requestDevice();
-if (!device) {
-    throw new Error("need a browser that supports WebGPU");
-}
 ```
 
 `navigator` 是浏览器提供的全局对象，用于访问浏览器的功能和信息。在 WebGPU 中，我们使用 `navigator.gpu` 来检查浏览器是否支持 WebGPU。
 如果存在，gpu 属性提供了两个重要方法：
 
-- `requestAdapter()`—返回一个 Promise，该 Promise 满足时会提供一个 GPUAdapter
+- `requestAdapter()`—返回一个 Promise，resolve 时会得到 `GPUAdapter`（或 `null`）
 - `getPreferredCanvasFormat()`—返回一个字符串，标识浏览器画布中图形的最佳格式
 
-`requestAdapter` 方法来获取一个 `GPUAdapter`，`GPUAdapter` 代表了实际的物理 GPU。大多数设备仅有一个 GPU，但有些设备不止一个。假如你使用的是 Windows 且有 2 个显卡（集成显卡 + 独立显卡），则至少有 4 个适配器可供使用。
+`requestAdapter()` 用于获取一个 `GPUAdapter`。你可以把 `GPUAdapter` 理解为“浏览器为当前页面选择的可用 GPU/后端”的代表：可能对应集成显卡、独立显卡，或者在极端情况下是软件回退实现（取决于系统与浏览器策略）。
 
-`requestAdapter()` 方法还可以接受一个可选参数，用于指定适配器的类型。默认值为 `undefined`，表示返回任何类型的适配器。
+`requestAdapter()` 还可以接受一个可选参数 `GPURequestAdapterOptions`，用于表达倾向（比如更省电还是更高性能）、是否强制回退适配器等。浏览器会结合这些偏好与平台能力返回一个合适的适配器，也可能返回 `null`。
 
-`GPUDevice` 是应用间的逻辑设备，具有应用间隔离的意义。可以认为，`GPUDevice` 是底层硬件适配器 `GPUAdapter` 为你的应用划分出来的一个子逻辑设备。所以，打一个不恰当的比方，`GPUAdapter `和 `GPUDevice` 就好像物理内存和逻辑内存的关系一样，前者是客观真实的，后者是软件层面逻辑划分的。
+`GPUDevice` 是应用中的逻辑设备，具有隔离意义。可以认为，`GPUDevice` 是底层适配器 `GPUAdapter` 为你的应用创建出来的“可用设备接口”。打个不太严谨的比方：`GPUAdapter` 更像“硬件/后端的选择”，`GPUDevice` 更像“你在当前页面里拿到的一把可用钥匙”，用来创建资源并提交命令。
 
 举一个简单的例子，让你大概明白 `GPUDevice` 的作用：
 
 现在我们想在 3D 场景中绘制一个三角形，那么我们需要三角形的三个顶点的坐标信息。
 
-对于顶点位置，我们可以在 javascript 中创建一个数组来存储：
+对于顶点位置，我们可以在 JavaScript 中创建一个数组来存储：
 
 ```javascript
 const vertices = [-0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.0, 0.5, 0.0];
 ```
 
-但是 `vertices` 是存储在 CPU 内存中的，我们需要将它传输到 GPU 内存中，才能被 GPU 访问和使用。那么怎样将数据传输到 GPU 内存中呢？这就需要使用到 `GPUDevice` 。
+但是 `vertices` 是存储在 CPU 内存中的，我们需要将它传输到 GPU 内存中，才能被 GPU 访问和使用。那么怎样将数据传输到 GPU 内存中呢？这就需要使用到 `GPUDevice`。
 
 将图像渲染所需要的数据传输到 GPU 内存中是 `GPUDevice` 的核心功能之一。
 
 现在你应该明白 `GPUDevice` 的作用了。
 
-目前我们已经成功创建和配置了 WebGPU 运行时环境。接下来我们将创建一个 `Canvas` 并绑定 `GPUDevice` 。
+目前我们已经成功创建和配置了 WebGPU 运行时环境。接下来我们将创建一个 canvas 并把它与 `GPUDevice` 关联起来。
 
 ```html
 <canvas height="150" width="300"></canvas>
@@ -70,7 +67,7 @@ context.configure({
 });
 ```
 
-我们从画布中获取一个 “webgpu” 上下文。我们会询问系统首选的画布格式是什。可能是 `rgba8unorm` 或 `bgra8unorm`。合适的选择可以让用户的系统以最快的速度运行。
+我们从画布中获取一个 `webgpu` 上下文。我们会询问系统首选的画布格式是什么，可能是 `rgba8unorm` 或 `bgra8unorm`。选择首选格式通常会有更好的兼容性与性能。
 
 ::: tip rgba8unorm vs bgra8unorm
 `rgba8unorm` 和 `bgra8unorm` 都是 8 位无符号整数格式，每个分量占用 8 位，取值范围是 0 到 255。它们的主要区别在于颜色分量的排列顺序。
@@ -83,7 +80,7 @@ context.configure({
 另外 `unorm` 中的 `u` 表示无符号整数格式，`norm` 表示归一化，即将 0-255 的取值范围映射到 0-1。
 :::
 
-然后我们通过调用 `configure` 将 `format` 传入 webgpu 画布上下文。我们还将 `device` 传入画布，从而将画布与我们刚刚创建的设备关联起来。
+然后我们通过调用 `context.configure(...)` 将 `format` 等参数传入 WebGPU 画布上下文。我们还将 `device` 传入画布，从而将画布与我们刚刚创建的设备关联起来。
 
 现在我们已经做好了准备工作。在开始写示例之前，建议先通读一遍[图形渲染流程](/WebGPU/graphicsRendering)这一章，建立从顶点到像素的整体直觉。
 
@@ -109,23 +106,23 @@ const pipeline = device.createRenderPipeline({
 });
 ```
 
-现在我们使用 `GPUDevice` 创建了一个渲染管线 `GPURenderPipeline` 。 `label` 是一个可选参数，用于给渲染管线起一个名字。这里我们将它设置为 “triangle pipeline”。
+现在我们使用 `GPUDevice` 创建了一个渲染管线 `GPURenderPipeline`。`label` 是一个可选参数，用于给渲染管线起一个名字。这里我们将它设置为 `"triangle pipeline"`。
 
-`layout` 是一个可选参数，用于指定渲染管线的布局。这里我们将它设置为 “auto”，表示让 WebGPU 自动选择布局。实际上，我们也可以手动指定布局，但是手动指定布局需要我们对 WebGPU 的布局系统有一定的了解，这里我们先不展开。
+`layout` 是一个可选参数，用于指定渲染管线的布局。这里我们将它设置为 `"auto"`，表示让 WebGPU 自动选择布局。实际上，我们也可以手动指定布局，但是手动指定布局需要我们对 WebGPU 的布局系统有一定的了解，这里我们先不展开。
 
 `vertex` 和 `fragment` 用来**配置**上一章[图形渲染流程](/WebGPU/graphicsRendering)的顶点着色器和片元着色器。
 
-`module` 是一个 `GPUShaderModule` 对象，用于存储 WGSL(WebGPU Shader Language)着色器代码。我们稍后会创建 `module` ，并在其中定义顶点着色器和片元着色器。
+`module` 是一个 `GPUShaderModule` 对象，用于存储 WGSL（WebGPU Shader Language）着色器代码。我们稍后会创建 `module`，并在其中定义顶点着色器和片元着色器。
 
-`entryPoint` 是一个可选参数，用于指定着色器模块中的入口函数。这里我们将它设置为 “vs” 和 “fs”，表示顶点着色器和片元着色器的入口函数分别是 “vs” 和 “fs”。
+`entryPoint` 用于指定着色器模块中的入口函数名。这里我们将它设置为 `"vs"` 和 `"fs"`，表示顶点着色器和片元着色器的入口函数分别是 `vs` 和 `fs`。
 
 `targets` 定义片元着色器（Fragment Shader）最终要把颜色输出到哪里、以及输出的格式和规则 的核心配置项。
 
 你可以把它想象成：片元着色器是 “画师”，`targets` 就是告诉画师 “要把画（颜色）画在哪个画布上、画布支持什么颜色格式、需不需要混合 / 透明效果”。
 
-这里我们将 `format` 传入，指定输出目标的颜色格式，并且必须和目标纹理的格式完全匹配，也就是我们在 `context.configure` 配置的 `format` ，否则会报错。
+这里我们将 `format` 传入，指定输出目标的颜色格式，并且必须和目标纹理的格式完全匹配，也就是我们在 `context.configure` 配置的 `format`，否则会报错。
 
-下一步我们来创建 `GPUShaderModule` 。
+下一步我们来创建 `GPUShaderModule`。
 
 ## 创建 GPUShaderModule
 
@@ -162,14 +159,14 @@ const module = device.createShaderModule({
 什么是 `vertexIndex` 呢？请看下面的伪代码：
 
 ```js
-[1,2,3].forEach(fn vs(_, vertexIndex) => {
-  let positions = [
+Array.from({ length: 3 }).forEach((_, vertexIndex) => {
+    const positions = [
         [0.0, 0.5, 0.0, 1.0],
         [-0.5, -0.5, 0.0, 1.0],
         [0.5, -0.5, 0.0, 1.0],
     ];
     return positions[vertexIndex];
-})
+});
 ```
 
 `vs` 函数会执行 3 次，`vertexIndex` 就是每次执行时的索引，分别是 0, 1, 2。
@@ -209,7 +206,7 @@ const module = device.createShaderModule({
 :::
 
 ::: tip
-WGSL 代码中的 `vs` 函数对应 `pipeline` 中的 `vertex.entryPoint` 配置项。 `fs` 函数对应 `pipeline` 中的 `fragment.entryPoint` 配置项。
+WGSL 代码中的 `vs` 函数对应 `pipeline` 中的 `vertex.entryPoint` 配置项；`fs` 函数对应 `pipeline` 中的 `fragment.entryPoint` 配置项。
 
 ```js
 const pipeline = device.createRenderPipeline({
@@ -227,7 +224,7 @@ const pipeline = device.createRenderPipeline({
 });
 ```
 
-一个 WGSL 代码中可以定义多个顶点着色器和多个片元着色器入口函数。如果你有多个顶点着色器和多个片元着色器入口函数，就需要手动指定 `entryPoint` 。
+一个 WGSL 代码中可以定义多个顶点着色器和多个片元着色器入口函数。此时需要用 `entryPoint` 指定到底使用哪一个函数作为入口。
 
 在本例中 `entryPoint` 可以省略，因为我们的 WGSL 代码中只有一个顶点着色器和一个片元着色器入口函数，所以 WebGPU 可以自动识别。
 :::
@@ -247,7 +244,7 @@ const passEncoder = commandEncoder.beginRenderPass({
             storeOp: "store",
         },
     ],
-    // 如果 pipeline.targets 有第二个 target，那么这里也需要提供第二个 colorAttachment
+    // 如果 pipeline.fragment.targets 有第二个 target，那么这里也需要提供第二个 colorAttachment
 });
 passEncoder.setPipeline(pipeline);
 passEncoder.draw(3);
@@ -304,7 +301,7 @@ createView 方法是可选的，也就是说：view 可以直接等于 context.g
 :::
 
 `loadOp` 用于指定渲染目标的加载操作（Load Operation），可选值有 `"clear"` 和 `"load"`。
-这里我们设置为 `"clear"`，表示在绘制前将渲染目标清除为 `clearValue` 本例中为绿色。
+这里我们设置为 `"clear"`，表示在绘制前将渲染目标清除为 `clearValue`，本例中为绿色。
 `"load"` 表示在绘制前将渲染目标的内容加载到内存中。
 
 `storeOp` 用于指定渲染目标的存储操作（Store Operation），可选值有 `"store"` 和 `"discard"`。
@@ -313,9 +310,9 @@ createView 方法是可选的，也就是说：view 可以直接等于 context.g
 
 
 ::: tip
-你应该注意到了`colorAttachments`、`pipeline.fragment.targets` 都是数组，并且我们只定义了第一个元素，实际上它们也是有关系的。
+你应该注意到了 `colorAttachments`、`pipeline.fragment.targets` 都是数组，并且我们只定义了第一个元素，实际上它们也是有关系的。
 
-`pipeline.fragment.targets` 定义了渲染管线的“输出槽（output slots）”——也就是每个颜色输出的格式（format）、混合（blend）等状态；而在开始 render pass 时，`colorAttachments` 数组则把具体的纹理视（GPUTextureView）绑定到这些输出槽上。两者按索引一一对应。
+`pipeline.fragment.targets` 定义了渲染管线的“输出槽（output slots）”——也就是每个颜色输出的格式（format）、混合（blend）等状态；而在开始 render pass 时，`colorAttachments` 数组则把具体的纹理视图（GPUTextureView）绑定到这些输出槽上。两者按索引一一对应。
 
 在 WGSL 着色器程序中：
 
@@ -335,9 +332,9 @@ fn fs() -> @location(0) vec4f {
 
 <WebGpuTrianglePlayground />
 
-现在你可以在在线编辑区编辑代码，试着修改 `loadOp` 、`storeOp` 等参数然后点击“更新预览”按钮即可预览渲染结果。
+现在你可以在在线编辑区编辑代码，试着修改 `loadOp`、`storeOp` 等参数然后点击“更新预览”按钮即可预览渲染结果。
 
-另外，本列中的 canvas 的 width 和 height 分别是 `300` 和 `150`。
+另外，本例中的 canvas 的 width 和 height 分别是 `300` 和 `150`。
 
 三角形的三个顶点是：
 
@@ -349,4 +346,4 @@ let positions = array(
 );
 ```
 
-你应该发现了，在 WGSL 中我们定义顶点的时候没有使用像素，因为不管你的 canvas 的尺寸是多大，顶点的x、y都是归一化的，范围是 `[-1, 1]`。结合上一章的[标准化设备坐标](./graphicsRendering.md#标准化设备坐标)，你可以尝试修改 `positions` 数组中的值来改变三角形的位置。
+你应该发现了，在 WGSL 中我们定义顶点的时候没有使用像素，因为不管你的 canvas 的尺寸有多大，顶点的 x、y 都是归一化的。在本例里（`w = 1`），它们会直接映射到标准化设备坐标（NDC），范围是 `[-1, 1]`。结合上一章的[标准化设备坐标](./graphicsRendering.md#标准化设备坐标)，你可以尝试修改 `positions` 数组中的值来改变三角形的位置。
