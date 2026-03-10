@@ -17,17 +17,26 @@ const DEFAULT_CSS = DEFAULT_WEBGPU_CSS;
 
 const DEFAULT_JS = `${DEFAULT_WEBGPU_SETUP_JS}
 
+const vertexData = new Float32Array([
+  0.0, 0.5,
+  -0.5, -0.5,
+  0.5, -0.5,
+]);
+
+const vertexBuffer = device.createBuffer({
+  label: "triangle vertex buffer",
+  size: vertexData.byteLength,
+  usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+});
+
+device.queue.writeBuffer(vertexBuffer, 0, vertexData);
+
 const module = device.createShaderModule({
-  label: "triangle shader module",
-  code:  \`
+  label: "vertex buffer shader module",
+  code: \`
         @vertex
-        fn vs(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position) vec4f {
-            let positions = array(
-                vec4f(0.0, 0.5, 0.0, 1.0),
-                vec4f(-0.5, -0.5, 0.0, 1.0),
-                vec4f(0.5, -0.5, 0.0, 1.0),
-            );
-            return positions[vertexIndex];
+        fn vs(@location(0) position: vec2f) -> @builtin(position) vec4f {
+            return vec4f(position, 0.0, 1.0);
         }
 
         @fragment
@@ -38,11 +47,23 @@ const module = device.createShaderModule({
 });
 
 const pipeline = device.createRenderPipeline({
-  label: "triangle pipeline",
+  label: "triangle pipeline (vertex buffer)",
   layout: "auto",
   vertex: {
     module,
     entryPoint: "vs",
+    buffers: [
+      {
+        arrayStride: 2 * 4,
+        attributes: [
+          {
+            shaderLocation: 0,
+            offset: 0,
+            format: "float32x2",
+          },
+        ],
+      },
+    ],
   },
   fragment: {
     module,
@@ -64,6 +85,7 @@ const passEncoder = commandEncoder.beginRenderPass({
   ],
 });
 passEncoder.setPipeline(pipeline);
+passEncoder.setVertexBuffer(0, vertexBuffer);
 passEncoder.draw(3);
 passEncoder.end();
 const commandBuffer = commandEncoder.finish();

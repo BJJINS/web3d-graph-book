@@ -1,3 +1,7 @@
+<script setup>
+import WebGpuTrianglePlayground from '../components/WebGpuTrianglePlayground.vue';
+</script>
+
 # 绘制一个三角形
 
 本章节我们将使用 WebGPU 渲染一个三角形。
@@ -21,6 +25,9 @@ if (!adapter) {
 }
 
 const device = await adapter.requestDevice();
+if (!device) {
+  throw Error("Couldn't request WebGPU device.");
+}
 ```
 
 `navigator` 是浏览器提供的全局对象，用于访问浏览器的功能和信息。在 WebGPU 中，我们使用 `navigator.gpu` 来检查浏览器是否支持 WebGPU。
