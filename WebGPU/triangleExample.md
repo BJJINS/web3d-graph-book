@@ -10,17 +10,17 @@
 
 ```javascript
 if (!navigator.gpu) {
-  throw Error("WebGPU not supported.");
+    throw Error("WebGPU not supported.");
 }
 
 const adapter = await navigator.gpu.requestAdapter();
 if (!adapter) {
-  throw Error("Couldn't request WebGPU adapter.");
+    throw Error("Couldn't request WebGPU adapter.");
 }
 
 const device = await adapter.requestDevice();
 if (!device) {
-  throw new Error("need a browser that supports WebGPU");
+    throw new Error("need a browser that supports WebGPU");
 }
 ```
 
@@ -54,13 +54,17 @@ const vertices = [-0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.0, 0.5, 0.0];
 
 目前我们已经成功创建和配置了 WebGPU 运行时环境。接下来我们将创建一个 `Canvas` 并绑定 `GPUDevice` 。
 
+```html
+<canvas height="150" width="300"></canvas>
+```
+
 ```javascript
 const canvas = document.querySelector("canvas");
 const context = canvas.getContext("webgpu");
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 context.configure({
-  device,
-  format: presentationFormat,
+    device,
+    format: presentationFormat,
 });
 ```
 
@@ -89,17 +93,17 @@ context.configure({
 
 ```js
 const pipeline = device.createRenderPipeline({
-  label: "triangle pipeline",
-  layout: "auto",
-  vertex: {
-    module,
-    entryPoint: "vs",
-  },
-  fragment: {
-    module,
-    entryPoint: "fs",
-    targets: [{ format: presentationFormat }],
-  },
+    label: "triangle pipeline",
+    layout: "auto",
+    vertex: {
+        module,
+        entryPoint: "vs",
+    },
+    fragment: {
+        module,
+        entryPoint: "fs",
+        targets: [{ format: presentationFormat }],
+    },
 });
 ```
 
@@ -125,8 +129,8 @@ const pipeline = device.createRenderPipeline({
 
 ```js
 const module = device.createShaderModule({
-  label: "triangle shader module",
-  code: `
+    label: "triangle shader module",
+    code: `
         @vertex
         fn vs(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position) vec4f {
             let positions = array(
@@ -195,7 +199,7 @@ const module = device.createShaderModule({
 ::: tip
 `fs` 和 `vs` 函数的执行次数是不同的。`vs` 函数会对每个顶点执行一次，而 `fs` 函数会对每个片元执行一次。
 
-`vec4f` 是 WGSL 中的一个向量类型，用于表示一个四维向量。
+`vec4f` 是 WGSL 中的一个向量类型，用于表示一个四维向量，既可以表示位置信息也可以表示颜色信息。
 
 在 `fs` 函数中是一个 RGBA 颜色值，分别表示红色、绿色、蓝色、透明度。这里我们将它设置为红色，透明度为 1.0。
 
@@ -220,6 +224,7 @@ const pipeline = device.createRenderPipeline({
   ...
 });
 ```
+
 一个 WGSL 代码中可以定义多个顶点着色器和多个片元着色器入口函数。如果你有多个顶点着色器和多个片元着色器入口函数，就需要手动指定 `entryPoint` 。
 
 在本例中 `entryPoint` 可以省略，因为我们的 WGSL 代码中只有一个顶点着色器和一个片元着色器入口函数，所以 WebGPU 可以自动识别。
@@ -232,13 +237,13 @@ const pipeline = device.createRenderPipeline({
 ```js
 const commandEncoder = device.createCommandEncoder();
 const passEncoder = commandEncoder.beginRenderPass({
-  colorAttachments: [
-    {
-      view: context.getCurrentTexture().createView(),
-      loadOp: "clear",
-      storeOp: "store",
-    },
-  ],
+    colorAttachments: [
+        {
+            view: context.getCurrentTexture().createView(),
+            loadOp: "clear",
+            storeOp: "store",
+        },
+    ],
 });
 passEncoder.setPipeline(pipeline);
 passEncoder.draw(3);
@@ -307,3 +312,17 @@ createView 方法是可选的，也就是说：view 可以直接等于 context.g
 <WebGpuTrianglePlayground />
 
 现在你可以在在线编辑区编辑代码，试着修改 `loadOp` 、`storeOp` 等参数然后点击“更新预览”按钮即可预览渲染结果。
+
+另外，本列中的 canvas 的 width 和 height 分别是 `300` 和 `150`。
+
+三角形的三个顶点是：
+
+```wgsl
+let positions = array(
+    vec4f(0.0, 0.5, 0.0, 1.0),
+    vec4f(-0.5, -0.5, 0.0, 1.0),
+    vec4f(0.5, -0.5, 0.0, 1.0),
+);
+```
+
+你应该发现了，在 WGSL 中我们定义顶点的时候没有使用像素，因为不管你的 canvas 的尺寸是多大，顶点的x、y都是归一化的，范围是 `[-1, 1]`。结合上一章的[标准化设备坐标](./graphicsRendering.md#标准化设备坐标)，你可以尝试修改 `positions` 数组中的值来改变三角形的位置。

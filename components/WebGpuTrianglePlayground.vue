@@ -13,7 +13,7 @@ const DEFAULT_HTML = `<!DOCTYPE html>
     <title>WebGPU Playground</title>
   </head>
   <body>
-    <canvas></canvas>
+    <canvas height="150" width="300"></canvas>
   </body>
 </html>`;
 
