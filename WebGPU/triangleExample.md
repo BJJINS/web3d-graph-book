@@ -303,7 +303,7 @@ device.queue.submit([commandBuffer]);
 
 `createView()` 方法用于创建一个渲染目标视图，渲染目标视图让 GPU 可以将渲染结果绘制到上面说的图片中。
 ::: info
-createView 方法是可选的，也就是说：view 可以直接等于 context.getCurrentTexture()。
+createView 方法是可选的，也就是说：view 可以直接等于 context.getCurrentTexture() 这和你的浏览器版本有关，旧版本可能不支持。
 如果你写 `view = context.getCurrentTexture()`，那么 WebGPU 会在内部调用 `createView` 方法创建一个渲染目标视图。
 :::
 

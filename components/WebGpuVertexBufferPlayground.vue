@@ -70,7 +70,6 @@ const pipeline = device.createRenderPipeline({
     entryPoint: "fs",
     targets: [{ format: presentationFormat }],
   },
-  primitive: { topology: "triangle-list" },
 });
 
 const commandEncoder = device.createCommandEncoder();

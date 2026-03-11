@@ -1,84 +1,145 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
-  </head>
 
-  <body>
-    <canvas></canvas>
-    <script type="module">
-      if (!navigator.gpu) {
-        throw Error("WebGPU not supported.");
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document</title>
+</head>
 
-      const adapter = await navigator.gpu.requestAdapter();
-      if (!adapter) {
-        throw Error("Couldn't request WebGPU adapter.");
-      }
+<body>
+  <canvas></canvas>
+  <script type="module">
+    if (!navigator.gpu) {
+      throw Error("WebGPU not supported.");
+    }
 
-      const device = await adapter.requestDevice();
-      if (!device) {
-        throw new Error("need a browser that supports WebGPU");
-      }
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) {
+      throw Error("Couldn't request WebGPU adapter.");
+    }
 
-      const canvas = document.querySelector("canvas");
-      const context = canvas.getContext("webgpu");
-      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-      context.configure({
-        device,
-        format: presentationFormat,
-      });
+    const device = await adapter.requestDevice();
+    if (!device) {
+      throw Error("Couldn't request WebGPU device.");
+    }
 
-      const module = device.createShaderModule({
-        label: "triangle shader module",
-        code: `
+    const canvas = document.querySelector("canvas");
+    const context = canvas.getContext("webgpu");
+    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+    context.configure({
+      device,
+      format: presentationFormat,
+    });
+
+    const vertexSize = 2 * 4 + 4; // 2 floats (position) * 4 bytes + 4 bytes (color)
+    const vertexData = new ArrayBuffer(vertexSize * 3);
+    const f32 = new Float32Array(vertexData);
+    const u8 = new Uint8Array(vertexData);
+
+    const positions = [
+      0.0, 0.5,
+      -0.5, -0.5,
+      0.5, -0.5,
+    ];
+
+    const colors = [
+      255, 0, 0, 255,
+      0, 255, 0, 255,
+      0, 0, 255, 255,
+    ];
+
+    for (let i = 0; i < 3; i++) {
+      f32[i * 3] = positions[i * 2];
+      f32[i * 3 + 1] = positions[i * 2 + 1];
+      const colorBase = i * vertexSize + 8;
+      u8[colorBase + 0] = colors[i * 4 + 0];
+      u8[colorBase + 1] = colors[i * 4 + 1];
+      u8[colorBase + 2] = colors[i * 4 + 2];
+      u8[colorBase + 3] = colors[i * 4 + 3];
+    }
+
+
+    const vertexBuffer = device.createBuffer({
+      label: "triangle vertex buffer",
+      size: vertexData.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+
+    device.queue.writeBuffer(vertexBuffer, 0, vertexData);
+
+    const module = device.createShaderModule({
+      label: "vertex buffer shader module",
+      code: `
+        struct VertexOutput {
+          @builtin(position) position: vec4f,
+          @location(1) color: vec3f,
+        };
+        
         @vertex
-        fn vs(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position) vec4f {
-            let positions = array(
-                vec4f(0.0, 0.5, 0.0, 1.0),
-                vec4f(-0.5, -0.5, 0.0, 1.0),
-                vec4f(0.5, -0.5, 0.0, 1.0),
-            );
-            return positions[vertexIndex];
+        fn vs(@location(0) position: vec2f, @location(1) color: vec4f) -> VertexOutput {
+          var output: VertexOutput;
+          output.position = vec4f(position, 0.0, 1.0);
+          output.color = color.rgb;
+          return output;
         }
 
         @fragment
-        fn fs() -> @location(0) vec4f {
-            return vec4f(1.0, 0.0, 0.0, 1.0);
+        fn fs(@location(1) color: vec3f) -> @location(0) vec4f {
+            return vec4f(color, 1.0);
         }
-    `,
-      });
+    `
+    });
 
-      const pipeline = device.createRenderPipeline({
-        label: "triangle pipeline",
-        layout: "auto",
-        vertex: {
-          module,
-        },
-        fragment: {
-          module,
-          targets: [{ format: presentationFormat }],
-        },
-      });
-
-      const commandEncoder = device.createCommandEncoder();
-      const passEncoder = commandEncoder.beginRenderPass({
-        colorAttachments: [
+    const pipeline = device.createRenderPipeline({
+      label: "triangle pipeline (vertex buffer)",
+      layout: "auto",
+      vertex: {
+        module,
+        entryPoint: "vs",
+        buffers: [
           {
-            view: context.getCurrentTexture().createView(),
-            loadOp: "clearValue",
-            clearValue: { r: 0, g: 1, b: 0, a: 1 },
-            storeOp: "discard",
+            arrayStride: vertexSize,
+            attributes: [
+              {
+                shaderLocation: 0,
+                offset: 0,
+                format: "float32x2",
+              },
+              {
+                shaderLocation: 1,
+                offset: 2 * 4,
+                format: "unorm8x4",
+              },
+            ],
           },
         ],
-      });
-      passEncoder.setPipeline(pipeline);
-      passEncoder.draw(3);
-      passEncoder.end();
-      const commandBuffer = commandEncoder.finish();
-      device.queue.submit([commandBuffer]);
-    </script>
-  </body>
+      },
+      fragment: {
+        module,
+        entryPoint: "fs",
+        targets: [{ format: presentationFormat }],
+      },
+    });
+
+    const commandEncoder = device.createCommandEncoder();
+    const passEncoder = commandEncoder.beginRenderPass({
+      colorAttachments: [
+        {
+          view: context.getCurrentTexture().createView(),
+          loadOp: "clear",
+          clearValue: { r: 0, g: 0, b: 0, a: 1 },
+          storeOp: "store",
+        },
+      ],
+    });
+    passEncoder.setPipeline(pipeline);
+    passEncoder.setVertexBuffer(0, vertexBuffer);
+    passEncoder.draw(3);
+    passEncoder.end();
+    const commandBuffer = commandEncoder.finish();
+    device.queue.submit([commandBuffer]);
+  </script>
+</body>
+
 </html>

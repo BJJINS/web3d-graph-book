@@ -2,8 +2,6 @@
 import TriangleGridCanvas from '../components/TriangleGridCanvas.vue'
 </script>
 
-# 图形渲染流程
-
 这一章只讲一件事：WebGPU 是如何把“顶点数据”一步步变成“屏幕像素”的。这里不放任何代码，我们介绍渲染这条流水线的概念，后续章节再把每一步落到具体 API 与案例上。
 
 如果你是初次接触图形渲染，在看完本章后可能会感到困惑，但是没关系，下一章是一个极简的案例，我会在[绘制一个三角形](./triangleExample.md)的案例中将代码与本章节的流程关联。

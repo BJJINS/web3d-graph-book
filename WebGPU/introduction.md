@@ -1,5 +1,3 @@
-# WebGPU 简介
-
 WebGPU 是新一代 Web 图形与计算 API。它让浏览器可以更直接、更高效地使用现代 GPU，既能在 Canvas 上做图形渲染，也能把通用计算任务交给 GPU 并行执行。
 
 ## WebGPU 从哪里来

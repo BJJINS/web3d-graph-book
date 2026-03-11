@@ -1,4 +1,5 @@
 <script setup>
+import { useData } from "vitepress";
 import WebGpuVertexBufferPlayground from '../components/WebGpuVertexBufferPlayground.vue';
 </script>
 
@@ -11,35 +12,6 @@ import WebGpuVertexBufferPlayground from '../components/WebGpuVertexBufferPlaygr
 1. 在 CPU 侧用 `Float32Array` 组织顶点数据
 2. 用 `device.createBuffer` 创建 `GPUBuffer`，并把数据写入 GPU
 3. 在 `createRenderPipeline` 里描述顶点数据布局，并在绘制前调用 `passEncoder.setVertexBuffer(...)` 绑定
-
-## 准备工作
-
-准备工作与上一章一致：检查 WebGPU、请求 `GPUAdapter` / `GPUDevice`，并把 `GPUDevice` 配置到 canvas 的 `webgpu` 上下文中。
-
-```js
-if (!navigator.gpu) {
-    throw Error("WebGPU not supported.");
-}
-
-const adapter = await navigator.gpu.requestAdapter();
-if (!adapter) {
-    throw Error("Couldn't request WebGPU adapter.");
-}
-
-const device = await adapter.requestDevice();
-if (!device) {
-  throw Error("Couldn't request WebGPU device.");
-}
-const canvas = document.querySelector("canvas");
-const context = canvas.getContext("webgpu");
-const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-context.configure({
-    device,
-    format: presentationFormat,
-});
-```
-
-接下来我们把三角形的 3 个顶点位置数据从 WGSL 移到 JavaScript，并通过顶点缓冲区传入。
 
 ## 顶点数据长什么样
 
@@ -118,6 +90,7 @@ const module = device.createShaderModule({
 
 attribute 在 pipeline 的 `vertex.buffers` 中进行配置。
 
+
 接下来就要在 pipeline 里告诉 WebGPU：你的 vertex buffer 里，每个顶点的字节布局到底是什么样的。
 
 ## 在渲染管线中描述顶点布局
@@ -131,7 +104,8 @@ attribute 在 pipeline 的 `vertex.buffers` 中进行配置。
 
 这 8 字节就是 `arrayStride`，表示每个顶点在缓冲区中的字节跨度。
 
-![arrayStride](/webgpu/vertex-buffer-one.svg)
+<img v-if="!isDark" alt="arrayStride" src="/webgpu/vertex-buffer-one.svg" />
+<img v-else alt="arrayStride" src="/webgpu/vertex-buffer-one-dark.svg" />
 
 ```js
 const pipeline = device.createRenderPipeline({
@@ -171,6 +145,40 @@ const pipeline = device.createRenderPipeline({
     - 表示该 attribute 从顶点数据的起始处开始读
 
 也就是说：WebGPU 在取第 `i` 个顶点时，会在 buffer 中跳到 `i * arrayStride + offset` 的位置，按 `format` 解释数据，并把它填充到着色器的 `@location(shaderLocation)` 上。
+
+`format` 字段可以是以下类型之一
+| Vertex format | Data type | Components | Byte size | Example WGSL type |
+| --- | --- | --- | --- | --- |
+| `uint8x2` | unsigned int | 2 | 2 | `vec2<u32>`, `vec2u` |
+| `uint8x4` | unsigned int | 4 | 4 | `vec4<u32>`, `vec4u` |
+| `sint8x2` | signed int | 2 | 2 | `vec2<i32>`, `vec2i` |
+| `sint8x4` | signed int | 4 | 4 | `vec4<i32>`, `vec4i` |
+| `unorm8x2` | unsigned normalized | 2 | 2 | `vec2<f32>`, `vec2f` |
+| `unorm8x4` | unsigned normalized | 4 | 4 | `vec4<f32>`, `vec4f` |
+| `snorm8x2` | signed normalized | 2 | 2 | `vec2<f32>`, `vec2f` |
+| `snorm8x4` | signed normalized | 4 | 4 | `vec4<f32>`, `vec4f` |
+| `uint16x2` | unsigned int | 2 | 4 | `vec2<u32>`, `vec2u` |
+| `uint16x4` | unsigned int | 4 | 8 | `vec4<u32>`, `vec4u` |
+| `sint16x2` | signed int | 2 | 4 | `vec2<i32>`, `vec2i` |
+| `sint16x4` | signed int | 4 | 8 | `vec4<i32>`, `vec4i` |
+| `unorm16x2` | unsigned normalized | 2 | 4 | `vec2<f32>`, `vec2f` |
+| `unorm16x4` | unsigned normalized | 4 | 8 | `vec4<f32>`, `vec4f` |
+| `snorm16x2` | signed normalized | 2 | 4 | `vec2<f32>`, `vec2f` |
+| `snorm16x4` | signed normalized | 4 | 8 | `vec4<f32>`, `vec4f` |
+| `float16x2` | float | 2 | 4 | `vec2<f16>`, `vec2h` |
+| `float16x4` | float | 4 | 8 | `vec4<f16>`, `vec4h` |
+| `float32` | float | 1 | 4 | `f32` |
+| `float32x2` | float | 2 | 8 | `vec2<f32>`, `vec2f` |
+| `float32x3` | float | 3 | 12 | `vec3<f32>`, `vec3f` |
+| `float32x4` | float | 4 | 16 | `vec4<f32>`, `vec4f` |
+| `uint32` | unsigned int | 1 | 4 | `u32` |
+| `uint32x2` | unsigned int | 2 | 8 | `vec2<u32>`, `vec2u` |
+| `uint32x3` | unsigned int | 3 | 12 | `vec3<u32>`, `vec3u` |
+| `uint32x4` | unsigned int | 4 | 16 | `vec4<u32>`, `vec4u` |
+| `sint32` | signed int | 1 | 4 | `i32` |
+| `sint32x2` | signed int | 2 | 8 | `vec2<i32>`, `vec2i` |
+| `sint32x3` | signed int | 3 | 12 | `vec3<i32>`, `vec3i` |
+| `sint32x4` | signed int | 4 | 16 | `vec4<i32>`, `vec4i` |
 
 ## 绘制命令：绑定顶点缓冲区
 
