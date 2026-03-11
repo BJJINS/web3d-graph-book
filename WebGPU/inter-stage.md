@@ -1,3 +1,7 @@
+<script setup>
+  import MemoryLayout from "../components/_internal/MemoryLayout.vue";
+</script>
+
  # 跨阶段数据传递（Inter-stage）
 
 现在我们思考一个问题，在 WGSL 中我们如何将顶点着色器的输出传递给片元着色器呢？
@@ -17,11 +21,13 @@
 ## 创建顶点数据
 
 首先我们使用 JavaScript 创建一个内存块，用于存储顶点数据，每个顶点包含位置和颜色信息。结构如下：
-![](/webgpu/inter-stage-vertex-data-layout.svg)
 
+<MemoryLayout />
+
+我们是这样存储数据的，每12个字节，前8个字节存储顶点的位置信息，后4个字节存储顶点的颜色信息（rgba 四个通道，每个通道1个字节）。一共需要36个字节。
 
 ```js
-const vertexSize = 2 * 4 + 4; // 2 floats (position) * 4 bytes + 4 bytes (color)
+const vertexSize = 2 * 4 + 4;
 const vertexData = new ArrayBuffer(vertexSize * 3);
 const f32 = new Float32Array(vertexData);
 const u8 = new Uint8Array(vertexData);
@@ -48,6 +54,25 @@ for (let i = 0; i < 3; i++) {
     u8[colorBase + 3] = colors[i * 4 + 3];
 }
 ```
+
+`vertexSize` 是每个顶点所需要的字节数。`vertexData` 表示创建一块内存，长度是 `vertexSize * 3` 个字节。
+
+`f32` 和 `u8` 使用同一块内存，`f32`（`Float32Array`）和 `u8`（`Uint8Array`）的区别在于：它们都是“视图（view）”，指向同一个 `ArrayBuffer`，但 **解释这段内存的粒度不同**。
+
+- **`Float32Array`（`f32`）**
+  - 以 4 个字节为一组来读写（IEEE 754 的 32 位浮点数）。
+  - 写入 `f32[k] = 1.0` 时，实际会把 `vertexData` 中从 `k * 4` 开始的 4 个字节改掉。
+  - 适合写入顶点位置、法线、UV 等需要小数精度的属性。
+
+- **`Uint8Array`（`u8`）**
+  - 以 1 个字节为一组来读写（0~255 的无符号整数）。
+  - 写入 `u8[offset] = 255` 时，只会改动 `vertexData` 的某一个字节。
+  - 特别适合写入颜色这种“每个通道 1 字节”的数据（RGBA 8-bit）。
+
+因此这段代码会用 `f32` 写 `position`（两个 `f32`，占 8 字节），再用 `u8` 从 `colorBase = i * vertexSize + 8` 这个 **字节偏移** 开始写 4 个颜色通道。
+
+注意这里的一个关键点是：同一块 buffer 里混合存放 `f32` 和 `u8` 时，你必须自己保证偏移与布局一致（例如 `position` 写了 8 字节后，颜色就从第 9 个字节开始写），并且在 `vertexBufferLayout.attributes[*].offset` / `format` 中用同样的规则告诉 GPU 该怎么解析。
+
 
 ## Inter-stage 到底在“传什么”
 
