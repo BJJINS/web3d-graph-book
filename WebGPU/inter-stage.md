@@ -1,14 +1,15 @@
 <script setup>
   import MemoryLayout from "../components/_internal/MemoryLayout.vue";
+  import WebGpuInterStagePlayground from "../components/WebGpuInterStagePlayground.vue";
 </script>
 
- # 跨阶段数据传递（Inter-stage）
+# 跨阶段数据传递（Inter-stage）
 
 现在我们思考一个问题，在 WGSL 中我们如何将顶点着色器的输出传递给片元着色器呢？
 
 这就是 **inter-stage（跨阶段接口）**：**顶点着色器输出 -> 片元着色器输入** 的那条数据通道。
 
-本章你会掌握 4 个核心点：
+本章你会掌握 3 个核心点：
 
 1. 用 `@location(n)` 定义跨阶段变量（varyings）
 2. 理解插值发生在哪里，以及为什么一个三角形能出现渐变色
@@ -22,15 +23,15 @@
 
 首先我们使用 JavaScript 创建一个内存块，用于存储顶点数据，每个顶点包含位置和颜色信息。结构如下：
 
-<MemoryLayout />
+<!-- <MemoryLayout /> -->
 
-我们是这样存储数据的，每12个字节，前8个字节存储顶点的位置信息，后4个字节存储顶点的颜色信息（rgba 四个通道，每个通道1个字节）。一共需要36个字节。
+我们按每个顶点 12 个字节来存储数据：前 8 个字节存储顶点位置，后 4 个字节存储顶点颜色（RGBA 四个通道，每个通道 1 个字节）。3 个顶点一共需要 36 个字节。
 
 ```js
 const vertexSize = 2 * 4 + 4;
 const vertexData = new ArrayBuffer(vertexSize * 3);
-const f32 = new Float32Array(vertexData);
-const u8 = new Uint8Array(vertexData);
+const posView = new Float32Array(vertexData);
+const colorView = new Uint8Array(vertexData);
 
 const positions = [
     0.0, 0.5,
@@ -45,109 +46,147 @@ const colors = [
 ];
 
 for (let i = 0; i < 3; i++) {
-    f32[i * 3] = positions[i * 2];
-    f32[i * 3 + 1] = positions[i * 2 + 1];
+    posView[i * 3] = positions[i * 2];
+    posView[i * 3 + 1] = positions[i * 2 + 1];
     const colorBase = i * vertexSize + 8;
-    u8[colorBase + 0] = colors[i * 4 + 0];
-    u8[colorBase + 1] = colors[i * 4 + 1];
-    u8[colorBase + 2] = colors[i * 4 + 2];
-    u8[colorBase + 3] = colors[i * 4 + 3];
+    colorView[colorBase + 0] = colors[i * 4 + 0];
+    colorView[colorBase + 1] = colors[i * 4 + 1];
+    colorView[colorBase + 2] = colors[i * 4 + 2];
+    colorView[colorBase + 3] = colors[i * 4 + 3];
 }
 ```
 
-`vertexSize` 是每个顶点所需要的字节数。`vertexData` 表示创建一块内存，长度是 `vertexSize * 3` 个字节。
+`vertexSize` 是每个顶点所需的字节数。`vertexData` 是创建出来的一块内存，长度为 `vertexSize * 3` 个字节。
 
-`f32` 和 `u8` 使用同一块内存，`f32`（`Float32Array`）和 `u8`（`Uint8Array`）的区别在于：它们都是“视图（view）”，指向同一个 `ArrayBuffer`，但 **解释这段内存的粒度不同**。
+`posView` 和 `colorView` 使用同一块内存，`posView`（`Float32Array`）和 `colorView`（`Uint8Array`）的区别在于：它们都是“视图（view）”，指向同一个 `ArrayBuffer`，但 **解释这段内存的粒度不同**。
 
-- **`Float32Array`（`f32`）**
-  - 以 4 个字节为一组来读写（IEEE 754 的 32 位浮点数）。
-  - 写入 `f32[k] = 1.0` 时，实际会把 `vertexData` 中从 `k * 4` 开始的 4 个字节改掉。
-  - 适合写入顶点位置、法线、UV 等需要小数精度的属性。
+- **`Float32Array`（`posView`）**
+    - 以 4 个字节为一组来读写（IEEE 754 的 32 位浮点数）。
+    - 写入 `posView[k] = 1.0` 时，实际会把 `vertexData` 中从 `k * 4` 开始的 4 个字节改掉。
+    - 适合写入顶点位置、法线、UV 等需要小数精度的属性。
 
-- **`Uint8Array`（`u8`）**
-  - 以 1 个字节为一组来读写（0~255 的无符号整数）。
-  - 写入 `u8[offset] = 255` 时，只会改动 `vertexData` 的某一个字节。
-  - 特别适合写入颜色这种“每个通道 1 字节”的数据（RGBA 8-bit）。
+- **`Uint8Array`（`colorView`）**
+    - 以 1 个字节为一组来读写（0~255 的无符号整数）。
+    - 写入 `colorView[offset] = 255` 时，只会改动 `vertexData` 的某一个字节。
+    - 特别适合写入颜色这种“每个通道 1 字节”的数据（RGBA 8-bit）。
 
-因此这段代码会用 `f32` 写 `position`（两个 `f32`，占 8 字节），再用 `u8` 从 `colorBase = i * vertexSize + 8` 这个 **字节偏移** 开始写 4 个颜色通道。
+因此这段代码会用 `posView` 写 `position`（两个 `f32`，占 8 字节），再用 `colorView` 从 `colorBase = i * vertexSize + 8` 这个 **字节偏移** 开始写 4 个颜色通道。
 
-注意这里的一个关键点是：同一块 buffer 里混合存放 `f32` 和 `u8` 时，你必须自己保证偏移与布局一致（例如 `position` 写了 8 字节后，颜色就从第 9 个字节开始写），并且在 `vertexBufferLayout.attributes[*].offset` / `format` 中用同样的规则告诉 GPU 该怎么解析。
+注意这里的一个关键点是：同一块 buffer 里混合存放 `posView` 和 `colorView` 时，你必须自己保证偏移与布局一致（例如 `position` 写了 8 字节后，颜色偏移应为 8 字节），并且在 `vertexBufferLayout.attributes[*].offset` / `format` 中用同样的规则告诉 GPU 该怎么解析。
 
+## 然后设置 pipeline
 
-## Inter-stage 到底在“传什么”
+```js
+...
+buffers: [
+    {
+    arrayStride: vertexSize,
+    attributes: [
+        {
+            shaderLocation: 0,
+            offset: 0,
+            format: "float32x2",
+        },
+        { // [!code ++]
+            shaderLocation: 1, // [!code ++]
+            offset: 2 * 4, // [!code ++]
+            format: "unorm8x4", // [!code ++]
+        }, // [!code ++]
+    ],
+    },
+]
+...
+```
 
-你可以把渲染过程想成三步：
+我们新增了一个 `attributes` 来描述颜色数据的布局，其中：
 
-1. **顶点着色器**：对每个顶点执行一次，输出：
-   - `@builtin(position)`：这个顶点的裁剪空间位置（必需，给光栅化用）
-   - `@location(...)`：你希望传给下一个阶段的自定义值
-2. **光栅化（Rasterization）**：把 3 个顶点组成的三角形“铺到屏幕网格上”
-   - 对三角形内部每个像素点，计算它在三个顶点之间的权重
-   - 对 `@location` 输出做插值
-3. **片元着色器**：对每个像素执行一次，读取插值后的输入，输出最终颜色
+- `offset: 2 * 4` 对应颜色数据偏移量，`2 * 4 = 8`，即从第 8 个字节开始读取颜色；前 8 个字节是位置数据（`position.xy`）。
+- `format` 对应颜色数据格式。`unorm8x4` 表示 4 个 8 位无符号整数（`0-255`），每个通道占 1 个字节。`unorm` 表示把无符号整数归一化到 `0-1`；与之对应，`snorm` 会归一化到 `-1~1`。
 
-要点：
+## 然后修改 WGSL
 
-- `@builtin(position)` 是管线固定功能所需的输出，不是给 fragment 随意“传参”的通道
-- `@location(n)` 才是跨阶段变量，它们会被插值后送入 fragment
+```wgsl
+struct VertexOutput { // [!code ++]
+    @builtin(position) position: vec4f, // [!code ++]
+    @location(1) color: vec3f, // [!code ++]
+};// [!code ++]
 
-## 顺带一提：片元输出的 `@location(0)` 是什么
+@vertex
+fn vs(@location(0) position: vec2f) -> @builtin(position) vec4f { // [!code --]
+fn vs(@location(0) position: vec2f, @location(1) color: vec4f) -> VertexOutput { // [!code ++]
+    var output: VertexOutput; // [!code ++]
+    output.position = vec4f(position, 0.0, 1.0); // [!code ++]
+    output.color = color.rgb; // [!code ++]
+    return vec4f(position, 0.0, 1.0); // [!code --]
+    return output; // [!code ++]
+}
 
- 在片元函数里你还会看到类似：
+@fragment
+fn fs() -> @location(0) vec4f { // [!code --]
+    return vec4f(1.0, 0.0, 0.0, 1.0); // [!code --]
+fn fs(@location(1) color: vec3f) -> @location(0) vec4f { // [!code ++]
+    return vec4f(color, 1.0); // [!code ++]
+}
+```
 
- ```wgsl
- fn fs(...) -> @location(0) vec4f
- ```
+`vs` 新增 `@location(1) color: vec4f`，对应上文顶点缓冲区里每个顶点后 4 字节的 RGBA 数据。`@location(1)` 中的 `1` 对应上面 pipeline 的 `shaderLocation: 1`。
 
- 这表示“把片元着色器的输出写到第 0 个颜色附件（color target 0）”。
+新增 `VertexOutput`，同时携带 `@builtin(position)` 和 `@location(1) color`，明确区分“固定管线语义”（position）与“自定义 varying”（color）。
 
- 它对应 JavaScript 里 pipeline 的：
+`output.color = color.rgb` 把顶点颜色写入 `@location(1)`，随后由光栅化阶段在三角形内部自动插值。
 
- - `fragment.targets[0]`
+`fs` 从 `@location(1)` 读取 `vec3f color`，不再返回固定红色，而是输出 `vec4f(color, 1.0)`。
 
- 如果你将来启用 multiple render targets（MRT），就会出现 `@location(0) / @location(1) ...` 多个输出位置。
+## inter-stage 变量通过 location 连接
 
-## 用 struct 组织顶点输出（推荐写法）
+WGSL 代码中的 `VertexOutput` 定义了 `@location(1) color: vec3f`，`fs` 函数也新增了参数 `@location(1) color: vec3f`，两者是一一对应的关系。`@location` 的数字只是编号：不要求从 0 开始，也不要求连续；但 **必须严格匹配**。
 
-在 WGSL 里，顶点着色器可以返回一个 struct。struct 的每个字段用 attribute 标注它的语义。
-
-下面这段来自项目根目录的 `index.html` 示例：
+你可以在 `VertexOutput` 中使用 `@location` 定义多个 inter-stage 变量，例如：
 
 ```wgsl
 struct VertexOutput {
-  @builtin(position) position: vec4f,
-  @location(1) color: vec3f,
+    @builtin(position) position: vec4f, // 不是 inter-stage 变量
+    @location(1) color: vec3f, // inter-stage 变量
+    @location(2) uv: vec2f, // inter-stage 变量
+    @location(7) normal: vec3f, // inter-stage 变量
 };
 ```
 
-含义是：
-
-- `position` 交给 GPU 做裁剪、透视除法、视口变换等固定流程
-- `color` 通过 `@location(1)` 作为一个 varying 传给 fragment，并参与插值
-
-`@location` 的数字只是编号：不要求从 0 开始，也不要求连续；但**必须与下游阶段严格匹配**。
-
-## 顶点输出如何对上片元输入
-
-同一个示例里的片元函数是：
+那么你在片元着色器中想要获取对应的数据就必须这么写：
 
 ```wgsl
-@fragment
-fn fs(@location(1) color: vec3f) -> @location(0) vec4f {
-  return vec4f(color, 1.0);
+fn fs(@location(1) color: vec3f, @location(2) uv: vec2f, @location(7) normal: vec3f) -> @location(0) vec4f {
+    return vec4f(color, 1.0); 
+}
+
+或者
+
+fn fs(input: VertexOutput) -> @location(0) vec4f {
+    // input.uv
+    // input.normal
+    return vec4f(input.color, 1.0); 
 }
 ```
+::: tip
+inter-stage 变量通常定义在顶点着色器返回的 struct（如本例的 `VertexOutput`）里；片元着色器可以按 `@location` 分别接收，也可以用 struct 接收。
 
-这里有两条“接口规则”：
+另外你应该发现了，不论是顶点着色器还是片元着色器都使用了 `@location`，你可能会搞混，我们来区分一下：
 
-1. **同一个 `@location(n)` 上的类型必须一致**
-2. **vertex 输出的 `@location(n)` 必须能在 fragment 输入里找到对应的 `@location(n)`**
+1. `@location` 在顶点着色器入参中表示从哪个 `shaderLocation` 读取数据。比如本例的 `position` 和 `color`：`fn vs(@location(0) position: vec2f, @location(1) color: vec4f)`
+2. `@location` 定义在顶点输出 struct 中并由顶点着色器返回时，表示定义的是 inter-stage 变量
+3. `@location` 在片元着色器入参中表示读取哪个 inter-stage 变量
+4. 片元输出的 `@location(0)`，`fn fs(...) -> @location(0) vec4f` 表示把片元着色器的输出写到第 0 个颜色附件 `fragment.targets[0]`
+:::
 
-你可以把 `@location(1)` 想成一根编号为 1 的数据线：
+## 在线编辑与预览
 
-- vertex 往 `location(1)` 写
-- 光栅化阶段负责插值
-- fragment 从 `location(1)` 读
+<WebGpuInterStagePlayground />
+
+现在你可以在在线编辑区直接改这章的关键代码，建议优先尝试：
+
+1. 改 `colors` 里的 RGBA 数组，观察三角形颜色如何变化
+2. 把 `@location(1)` 故意改错（例如改成 `@location(2)`），观察 pipeline 校验错误，再改回正确值
+3. 把 `format: "unorm8x4"` 改成其他格式并同步修改 WGSL 输入类型，体会 buffer 格式与 shader 类型的匹配关系
 
 ## 插值：为什么会出现渐变
 
@@ -171,7 +210,33 @@ inter-stage 最直观的效果就是渐变色。
 ::: tip 关于整数插值
 浮点 varying（`f32` / `vec*f`）默认会插值。
 
-如果你想跨阶段传整数（例如 `u32`），通常需要用 `@interpolate(flat)` 之类的显式插值修饰，否则会报错。
+如果你想跨阶段传整数（例如 `u32`），必须使用 `@interpolate(flat)`（或等价的 `flat` 插值设置），否则会触发着色器校验错误。
+
+对于如何进行插值，有两组设置可以更改。将它们设置为默认值以外的值并不常见。
+
+插值类型:
+
+- perspective: 以正确的透视方式插值 (默认)
+- linear: 以线性、非透视正确的方式内插数值。
+- flat: 不在图元内部做插值，值直接来自图元的某个顶点（由 `first`/`either` 控制）。
+
+插值采样:
+
+- center: 插值在像素中心进行 (默认)
+- centroid: 插值是在当前基元中片段所覆盖的所有样本内的某一点上进行的。该值对基元中的所有样本都是相同的。
+- sample: 每次采样时执行插值。应用此属性时，每次采样都会调用一次片段着色器。
+- first: 只能在插值类型为 flat 时使用。（默认）绘制时采用图元第一个顶点的值。
+- either: 只能在插值类型为 flat 时使用。绘制时可能采用图元第一个顶点或最后一个顶点的值。
+
+你可以将其指定为属性。例如：
+
+```wgsl
+@location(2) @interpolate(linear, center) myVariableFoo: vec4f;
+@location(3) @interpolate(flat) myVariableBar: vec4f;
+```
+
+如果将插值类型设置为 `flat`，那么传递给片元着色器的值来自一个顶点（默认是 `first`，即图元的第一个顶点）。
+
 :::
 
 ## 结合示例：从顶点缓冲到 inter-stage 的完整链路
@@ -220,34 +285,3 @@ fn vs(@location(0) position: vec2f, @location(1) color: vec4f) -> VertexOutput {
 3. **Vertex Output**：写入 `VertexOutput.@location(1)`
 4. **Rasterizer**：对 `@location(1)` 插值
 5. **Fragment Input**：读取插值后的 `@location(1)` 并输出颜色
-
-## 最常见的坑
-
- 在你遇到奇怪报错前，建议先用下面这张清单快速自查：
-
- - **location 是否一致**
-   - vertex 输出 `@location(n)` 必须能在 fragment 输入里找到同一个 `@location(n)`
- - **类型是否一致**
-   - 同一个 `@location(n)` 上，标量类型（f32/i32/u32）、向量维度（vec2/vec3/vec4）都必须匹配
- - **插值规则是否一致/是否允许**
-   - 浮点默认可插值
-   - 整数通常需要 `@interpolate(flat)`
- - **vertex buffer format 与 WGSL 输入是否匹配**
-   - 例如 `unorm8x4` 应接收为 `vec4f`，再按需取 `.rgb`
-
-### 1) location 对不上
-
-顶点输出是 `@location(1)`，片元输入却写成 `@location(0)`，不会“自动对齐”。一般会在 pipeline 校验时报错。
-
-### 2) 类型对不上
-
-同一个 location 上，`vec3f` 和 `vec4f` 也不能混用，必须严格一致。
-
-### 3) 顶点缓冲的 format 与 WGSL 类型写错
-
-例如 `unorm8x4`：
-
-- 正确接收类型：`vec4f`
-- 常见错误：写成 `vec4u` / `vec3f` 直接读
-
-想要 `vec3f` 也没问题，但应先读 `vec4f` 再取 `.rgb`（就像示例这样）。

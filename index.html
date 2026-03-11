@@ -32,10 +32,10 @@
       format: presentationFormat,
     });
 
-    const vertexSize = 2 * 4 + 4; // 2 floats (position) * 4 bytes + 4 bytes (color)
+    const vertexSize = 2 * 4 + 4;
     const vertexData = new ArrayBuffer(vertexSize * 3);
-    const f32 = new Float32Array(vertexData);
-    const u8 = new Uint8Array(vertexData);
+    const posView = new Float32Array(vertexData);
+    const colorView = new Uint8Array(vertexData);
 
     const positions = [
       0.0, 0.5,
@@ -50,13 +50,13 @@
     ];
 
     for (let i = 0; i < 3; i++) {
-      f32[i * 3] = positions[i * 2];
-      f32[i * 3 + 1] = positions[i * 2 + 1];
+      posView[i * 3] = positions[i * 2];
+      posView[i * 3 + 1] = positions[i * 2 + 1];
       const colorBase = i * vertexSize + 8;
-      u8[colorBase + 0] = colors[i * 4 + 0];
-      u8[colorBase + 1] = colors[i * 4 + 1];
-      u8[colorBase + 2] = colors[i * 4 + 2];
-      u8[colorBase + 3] = colors[i * 4 + 3];
+      colorView[colorBase + 0] = colors[i * 4 + 0];
+      colorView[colorBase + 1] = colors[i * 4 + 1];
+      colorView[colorBase + 2] = colors[i * 4 + 2];
+      colorView[colorBase + 3] = colors[i * 4 + 3];
     }
 
 
@@ -73,9 +73,9 @@
       code: `
         struct VertexOutput {
           @builtin(position) position: vec4f,
-          @location(1) color: vec3f,
+          @location(2) color: vec3f,
         };
-        
+
         @vertex
         fn vs(@location(0) position: vec2f, @location(1) color: vec4f) -> VertexOutput {
           var output: VertexOutput;
@@ -85,7 +85,7 @@
         }
 
         @fragment
-        fn fs(@location(1) color: vec3f) -> @location(0) vec4f {
+        fn fs(@location(2) color: vec3f) -> @location(0) vec4f {
             return vec4f(color, 1.0);
         }
     `
