@@ -1,29 +1,29 @@
 ---
 layout: home
-title: WebGPU与图形渲染
-description: 一个基于WebGPU的图形渲染的指南
+title: WebGPU 与 WGSL
+description: 一个以 WebGPU、WGSL 和计算机图形学为主线的简明学习网站
 
 hero:
   image: /favicon.svg
-  name: "WebGPU与图形渲染"
-  text: "一个基于WebGPU的图形渲染的指南"
-  tagline: 从基础到实践的完整学习路径
-  # actions:
-  #   - theme: brand
-  #     text: WebGPU
-  #     link: /WebGPU/introduction
+  name: "WebGPU 与 WGSL"
+  text: "面向浏览器的图形与计算入门"
+  tagline: 从 WebGPU、WGSL 到计算机图形学基础，建立清晰、可靠的学习路径
+  actions:
+    - theme: brand
+      text: 开始学习 WebGPU
+      link: /WebGPU/introduction
+    - theme: alt
+      text: 认识 WGSL
+      link: /WGSL/introduction
 
 features:
   - title: WebGPU
-    details: WebGPU是一个用于在浏览器中进行图形渲染的API，它提供了对GPU的直接访问，允许开发者在浏览器中实现高性能的图形渲染。
+    details: WebGPU 是 Web 平台面向现代 GPU 的图形与计算 API，用来组织资源、编码命令，并把渲染或计算工作交给 GPU。
     link: /WebGPU/introduction
-  - title: 图形渲染
-    details: 图形渲染是指将3D模型转换为2D图像的过程，它涉及到对模型的几何和材质进行处理，以及对场景中的光照和阴影进行计算。
-    link: /graphic-rendering/introduction
   - title: WGSL
-    details: WGSL是WebGPU的着色语言，提供了对GPU的直接访问，允许开发者在浏览器中实现高性能的图形渲染。
+    details: WGSL 是 WebGPU 使用的着色器语言，用来编写顶点着色器、片元着色器和计算着色器。
     link: /WGSL/introduction
-  - title: WGPU
-    details: wgpu 是基于 WebGPU API 规范的、跨平台的、安全的、纯 Rust 图形 API。它是 Firefox、Servo 和 Deno 中 WebGPU 整合的核心。
-    link: /WGPU/introduction
+  - title: 计算机图形学
+    details: 从顶点、坐标变换、光栅化到颜色输出，理解图形渲染流程，建立阅读 WebGPU 代码所需的图形学直觉。
+    link: /WebGPU/graphicsRendering
 ---

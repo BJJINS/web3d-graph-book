@@ -1,32 +1,34 @@
 # WGSL 是什么
 
-WGSL（WebGPU Shading Language）是 **WebGPU 的着色器语言**。  
-你可以把它理解为“写给 GPU 执行的程序语言”，用于告诉 GPU：
+WGSL（WebGPU Shading Language）是 **WebGPU 使用的着色器语言**。
 
-- 顶点该放到屏幕哪里（顶点着色器）
-- 像素该显示什么颜色（片元着色器）
-- 如何并行处理大量数据（计算着色器）
+你可以先把它理解成一句话：
 
-尽管角色不同，但每个 WebGPU 着色器都是用 WebGPU 着色器语言（简称 WGSL）编写的。WGSL 部分基于 JavaScript，部分基于 C 编程语言，但与 JavaScript 和 C 不同的是，WGSL 函数在 GPU 而非 CPU 上运行。
+- **JavaScript 负责准备资源和提交命令**
+- **WGSL 负责告诉 GPU 具体要计算什么**
 
-WGSL 需要和 JavaScript 配合使用：  
+也就是说，WebGPU 不是只写 JavaScript，也不是只写 WGSL，而是两者配合完成渲染和计算。
 
-JavaScript 负责创建管线、准备数据、发出命令；WGSL 负责在 GPU 上执行具体计算。
+## WGSL 主要做什么
 
-## WGSL 在 WebGPU 里的位置
+在 WebGPU 里，WGSL 主要用来编写 3 类着色器：
 
-一个简化流程如下：
+- **顶点着色器**：决定顶点的位置
+- **片元着色器**：决定片元最终输出什么颜色
+- **计算着色器**：执行通用并行计算
 
-1. JavaScript 创建 `GPUBuffer`、`GPURenderPipeline` 等对象
-2. JavaScript 把 WGSL 代码交给 GPU 编译和校验
-3. GPU 按 WGSL 的入口函数执行渲染或计算
-4. 结果写入屏幕（纹理）或缓冲区
+图形程序通常至少会用到前两种；做通用 GPU 计算时，则会用到计算着色器。
 
-所以，WebGPU 解决“怎么调度 GPU”，WGSL 解决“GPU 具体做什么”。
+## WGSL 长什么样
 
-## 最小直觉示例
+WGSL 是一门**强类型语言**。常见类型包括：
 
-下面是一段最小 WGSL：顶点着色器输出位置，片元着色器输出固定颜色。
+- 标量：`bool`、`i32`、`u32`、`f32`
+- 向量：`vec2f`、`vec3f`、`vec4f`
+- 矩阵：`mat3x3f`、`mat4x4f`
+- 结构体：`struct`
+
+下面是一段最小示例：
 
 ```wgsl
 @vertex
@@ -34,7 +36,7 @@ fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
     let pos = array<vec2f, 3>(
         vec2f(0.0, 0.5),
         vec2f(-0.5, -0.5),
-        vec2f(0.5, -0.5)
+        vec2f(0.5, -0.5),
     );
     return vec4f(pos[i], 0.0, 1.0);
 }
@@ -45,11 +47,17 @@ fn fs() -> @location(0) vec4f {
 }
 ```
 
-这段代码先定义三角形三个顶点的位置，再让每个像素输出同一种颜色。
+这段代码里：
 
-## WGSL 的特点
+- `@vertex` 表示这是顶点着色器入口
+- `@fragment` 表示这是片元着色器入口
+- `vs` 返回顶点位置
+- `fs` 返回片元颜色
 
-1. 强类型：类型不匹配会在校验阶段直接报错  
-2. 注解明确：通过 `@vertex`、`@fragment`、`@location`、`@builtin` 标注语义  
-3. 面向现代 GPU：同时支持渲染管线和计算管线  
-4. 与 WebGPU 一体化：资源绑定规则（`@group`/`@binding`）与 WebGPU API 直接对应
+函数名可以自己起，但入口类型必须用 `@vertex`、`@fragment` 或 `@compute` 标出来。
+
+## 初学时先记住 3 点
+
+1. **WGSL 运行在 GPU 上，不运行在 CPU 上**
+2. **WGSL 是强类型语言，类型必须写清楚**
+3. **WGSL 往往会和 buffer、纹理、绑定一起使用**
