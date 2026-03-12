@@ -656,39 +656,56 @@ const u32 = new Uint32Array(raw);
 
 ## uniform 和 storage：为什么 uniform 往往更“保守”
 
-到这里你可能会觉得：  
-“好，按每种类型的 `size` 和 `alignment` 算就行了。”
-
-这句话**基本正确**，但对 `uniform` address space 来说，还要再加一句：
-
 > **为了兼容更广泛的实现，uniform buffer 往往需要按 16 字节节奏来布局数组和嵌套 struct。**
+
+uniform 主要用来放：
+
+- 变换矩阵
+- 相机参数
+- 材质常量
+- 灯光参数
+
+这类数据会被 shader 高频读取，而且很多底层图形 API / GPU 实现对这类“常量缓冲区”的布局要求本来就比较保守。
+
+数组元素的 stride，以及嵌套 struct 的布局，通常需要满足 16 字节节奏，因此工程上常把 uniform buffer 按 16 字节块来设计。
 
 也就是说，在最保守、最不容易踩坑的 uniform 写法里：
 
 - 数组元素 stride 通常要是 16 的倍数
 - 嵌套 struct 的起始位置也通常要按 16 对齐
 
-这会带来一个很重要的设计建议：
-
-### 建议 1：uniform 里成组标量，优先打包成 `vec4f`
-
-例如你有 4 个权重：
-
 ```wgsl
-weights: vec4f
+struct Inner {
+    a: f32,
+    b: f32,
+}
+
+struct Outer {
+    inner: Inner,
+    c: f32,
+}
 ```
 
-往往比：
+先看 Inner：
 
-```wgsl
-weights: array<f32, 4>
-```
+- a 4 字节
+- b 4 字节
+- 所以 Inner 自己大小是 8 字节
 
-更省心，也更节省空间。
+如果这是 storage 风格的紧凑思路，你可能会觉得：
 
-因为在保守 uniform 规则下，`array<f32, 4>` 很可能不是 16 字节，而是按“每个元素一个 16 字节槽位”来思考。
+- inner 放在 0
+- c 放在 8
 
-### 建议 2：大量紧凑数组，更适合 storage buffer
+但在 uniform 的保守规则下，通常要把 inner 这个嵌套结构体看成一个按 16 字节节奏占位的块，于是：
+
+- inner 在 0
+- c 往往不能接着放在 8
+- 而要放到 16
+
+于是整个 Outer 会比你直觉里更大。
+
+### 建议：大量紧凑数组，更适合 storage buffer
 
 如果你的数据天然就是“很多标量 / 很多小结构体 / 希望尽量少浪费空间”，那 `storage` buffer 往往比 `uniform` 更自然。
 
@@ -702,19 +719,6 @@ weights: array<f32, 4>
 WGSL 规范提供了 `uniform_buffer_standard_layout` 扩展，用来放宽一部分 uniform 的额外限制，使它更接近 storage 的布局规则。
 
 但从教程和工程可移植性的角度看，如果你还没有显式围绕这个扩展做能力判断与适配，那么**继续按“uniform 以 16 字节为基本节奏”来设计，是最稳妥的默认策略。**
-
-## 一份实战排查清单
-
-当你的 WebGPU 画面出现“颜色不对、矩阵错位、动画抽搐、uniform 明明写了却没生效”这些问题时，可以按下面这份清单逐项排查：
-
-1. **WGSL 和 JavaScript 侧的成员顺序是否完全一致**
-2. **有没有把 `vec3f` 错当成 12 字节 stride 来写数组**
-3. **有没有忘记结构体总大小也需要补齐**
-4. **`mat3x3f` 有没有误按 36 字节处理**
-5. **uniform 里的数组 / 嵌套 struct，是否按更保守的 16 字节规则考虑过**
-6. **TypedArray 下标和字节偏移是否换算正确**
-
-只要这几项对齐，绝大多数“内存布局问题”都会自动消失。
 
 ## 小结
 
