@@ -1,5 +1,5 @@
 <script setup>
-  import MemoryLayout from "../components/_internal/MemoryLayout/index.vue";
+  import MemoryLayout from "../components/MemoryLayoutCanvas.vue";
   import WebGpuInterStagePlayground from "../components/WebGpuInterStagePlayground.vue";
 </script>
 

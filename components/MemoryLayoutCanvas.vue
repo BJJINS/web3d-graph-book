@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import WgslVarLayoutMap, { type WgslVarType } from "./dataMemoryLayout";
+import WgslVarLayoutMap, { type WgslVarType } from "../memoryLayout/constants.ts";
 
 const props = defineProps<{ layout?: Record<string, WgslVarType> }>();
 const { layout } = props;

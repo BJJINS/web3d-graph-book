@@ -1,5 +1,4 @@
 <script setup>
-import { useData } from "vitepress";
 import WebGpuVertexBufferPlayground from '../components/WebGpuVertexBufferPlayground.vue';
 </script>
 
