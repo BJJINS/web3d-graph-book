@@ -1,5 +1,4 @@
 <script setup>
-  import MemoryLayout from "../components/MemoryLayoutCanvas.vue";
   import WebGpuInterStagePlayground from "../components/WebGpuInterStagePlayground.vue";
 </script>
 
@@ -22,8 +21,6 @@
 ## 创建顶点数据
 
 首先我们使用 JavaScript 创建一个内存块，用于存储顶点数据，每个顶点包含位置和颜色信息。结构如下：
-
-<MemoryLayout />
 
 我们按每个顶点 12 个字节来存储数据：前 8 个字节存储顶点位置，后 4 个字节存储顶点颜色（RGBA 四个通道，每个通道 1 个字节）。3 个顶点一共需要 36 个字节。
 
