@@ -25,6 +25,7 @@ export default defineConfig({
     nav: [
       { text: '主页', link: '/index' },
       { text: 'WebGPU', link: '/WebGPU/introduction' },
+      { text: 'WGSL', link: '/WGSL/introduction' },
     ],
 
     sidebar: {
@@ -41,6 +42,14 @@ export default defineConfig({
                 { text: 'Inter-stage 变量', link: '/WebGPU/inter-stage' },
               ]
             },
+          ]
+        },
+      ],
+      '/WGSL': [
+        {
+          text: 'WGSL',
+          items: [
+            { text: '介绍', link: '/WGSL/introduction' },
           ]
         },
       ],

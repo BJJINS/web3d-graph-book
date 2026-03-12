@@ -22,6 +22,8 @@ features:
     link: /graphic-rendering/introduction
   - title: WGSL
     details: WGSL是WebGPU的着色语言，提供了对GPU的直接访问，允许开发者在浏览器中实现高性能的图形渲染。
+    link: /WGSL/introduction
   - title: WGPU
     details: wgpu 是基于 WebGPU API 规范的、跨平台的、安全的、纯 Rust 图形 API。它是 Firefox、Servo 和 Deno 中 WebGPU 整合的核心。
+    link: /WGPU/introduction
 ---

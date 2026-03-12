@@ -119,7 +119,7 @@ const pipeline = device.createRenderPipeline({
 
 `vertex` 和 `fragment` 用来**配置**上一章[图形渲染流程](/WebGPU/graphicsRendering)的顶点着色器和片元着色器。
 
-`module` 是一个 `GPUShaderModule` 对象，用于存储 WGSL（WebGPU Shader Language）着色器代码。我们稍后会创建 `module`，并在其中定义顶点着色器和片元着色器。
+`module` 是一个 `GPUShaderModule` 对象，用于存储 [WGSL](../WGSL/introduction.md)（WebGPU Shader Language）着色器代码。我们稍后会创建 `module`，并在其中定义顶点着色器和片元着色器。
 
 `entryPoint` 用于指定着色器模块中的入口函数名。这里我们将它设置为 `"vs"` 和 `"fs"`，表示顶点着色器和片元着色器的入口函数分别是 `vs` 和 `fs`。
 
@@ -155,7 +155,7 @@ const module = device.createShaderModule({
 });
 ```
 
-`module` 是一个 `GPUShaderModule` 对象，用于存储 WGSL（WebGPU Shader Language）着色器代码。 WGSL 是在 GPU 中运行的着色器语言，所以我们需要将 WGSL 代码以字符串的形式传入 `module` 中。
+`module` 是一个 `GPUShaderModule` 对象，用于存储 WGSL 着色器代码。 WGSL 是在 GPU 中运行的着色器语言，所以我们需要将 WGSL 代码以字符串的形式传入 `module` 中。
 
 `@vertex` 和 `@fragment` 是 WGSL 中的装饰器（Decorator），用于标记顶点着色器函数。 上面的 `vs` 函数就是一个顶点着色器入口函数，上面的 `fs` 函数就是一个片元着色器入口函数。
 
