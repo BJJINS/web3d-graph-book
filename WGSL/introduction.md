@@ -9,7 +9,8 @@ WGSL（WebGPU Shading Language）是 **WebGPU 的着色器语言**。
 
 尽管角色不同，但每个 WebGPU 着色器都是用 WebGPU 着色器语言（简称 WGSL）编写的。WGSL 部分基于 JavaScript，部分基于 C 编程语言，但与 JavaScript 和 C 不同的是，WGSL 函数在 GPU 而非 CPU 上运行。
 
-WGSL 不是 JavaScript 的替代品，而是和 JavaScript 配合使用：  
+WGSL 需要和 JavaScript 配合使用：  
+
 JavaScript 负责创建管线、准备数据、发出命令；WGSL 负责在 GPU 上执行具体计算。
 
 ## WGSL 在 WebGPU 里的位置
