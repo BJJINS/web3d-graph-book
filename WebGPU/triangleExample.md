@@ -4,77 +4,76 @@ import WebGpuTrianglePlayground from '../components/WebGpuTrianglePlayground.vue
 
 # 绘制一个三角形
 
-本章节我们将使用 WebGPU 渲染一个三角形。
+这一章我们做一件图形编程里最经典的事：**用 WebGPU 在画布上画出一个三角形。**
 
-## 准备工作
+别看结果简单，这个例子几乎把 WebGPU 渲染最核心的几步都串起来了：
 
-首先我们需要先做一些准备工作：
+1. 获取 GPU 设备
+2. 配置 Canvas
+3. 编写 WGSL 着色器
+4. 创建渲染管线
+5. 编码并提交绘制命令
 
-1. 检查浏览器是否支持 WebGPU（`navigator.gpu` 是否存在）。
-2. 通过 `navigator.gpu.requestAdapter()` 获取 `GPUAdapter`。
-3. 通过 `adapter.requestDevice()` 获取 `GPUDevice`。
+理解了这一章，后面再看顶点缓冲、uniform、纹理和光照，就会顺很多。
 
-```javascript
+## 第一步：获取 `GPUDevice`
+
+WebGPU 的入口是 `navigator.gpu`。  
+一个最小的初始化流程通常是：
+
+```js
 if (!navigator.gpu) {
-    throw Error("WebGPU not supported.");
+    throw new Error("WebGPU not supported.");
 }
 
 const adapter = await navigator.gpu.requestAdapter();
 if (!adapter) {
-    throw Error("Couldn't request WebGPU adapter.");
+    throw new Error("Failed to get GPUAdapter.");
 }
 
 const device = await adapter.requestDevice();
-if (!device) {
-  throw Error("Couldn't request WebGPU device.");
-}
 ```
 
-`navigator` 是浏览器提供的全局对象，用于访问浏览器的功能和信息。在 WebGPU 中，我们使用 `navigator.gpu` 来检查浏览器是否支持 WebGPU。
-如果存在，gpu 属性提供了两个重要方法：
+这里有两个关键对象：
 
-- `requestAdapter()`—返回一个 Promise，resolve 时会得到 `GPUAdapter`（或 `null`）
-- `getPreferredCanvasFormat()`—返回一个字符串，标识浏览器画布中图形的最佳格式
+- `GPUAdapter`：浏览器为当前页面选择的可用 GPU 适配器
+- `GPUDevice`：真正负责创建资源、编码命令、提交工作的核心对象
 
-`requestAdapter()` 用于获取一个 `GPUAdapter`。你可以把 `GPUAdapter` 理解为“浏览器为当前页面选择的可用 GPU/后端”的代表：可能对应集成显卡、独立显卡，或者在极端情况下是软件回退实现（取决于系统与浏览器策略）。
+你可以把它理解成：
 
-`requestAdapter()` 还可以接受一个可选参数 `GPURequestAdapterOptions`，用于表达倾向（比如更省电还是更高性能）、是否强制回退适配器等。浏览器会结合这些偏好与平台能力返回一个合适的适配器，也可能返回 `null`。
+- `adapter` 负责“选中哪块 GPU / 哪个后端”
+- `device` 负责“开始真正干活”
 
-`GPUDevice` 是应用中的逻辑设备，具有隔离意义。可以认为，`GPUDevice` 是底层适配器 `GPUAdapter` 为你的应用创建出来的“可用设备接口”。打个不太严谨的比方：`GPUAdapter` 更像“硬件/后端的选择”，`GPUDevice` 更像“你在当前页面里拿到的一把可用钥匙”，用来创建资源并提交命令。
+## 第二步：配置 Canvas
 
-举一个简单的例子，让你大概明白 `GPUDevice` 的作用：
-
-现在我们想在 3D 场景中绘制一个三角形，那么我们需要三角形的三个顶点的坐标信息。
-
-对于顶点位置，我们可以在 JavaScript 中创建一个数组来存储：
-
-```javascript
-const vertices = [-0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.0, 0.5, 0.0];
-```
-
-但是 `vertices` 是存储在 CPU 内存中的，我们需要将它传输到 GPU 内存中，才能被 GPU 访问和使用。那么怎样将数据传输到 GPU 内存中呢？这就需要使用到 `GPUDevice`。
-
-将图像渲染所需要的数据传输到 GPU 内存中是 `GPUDevice` 的核心功能之一。
-
-现在你应该明白 `GPUDevice` 的作用了。
-
-目前我们已经成功创建和配置了 WebGPU 运行时环境。接下来我们将创建一个 canvas 并把它与 `GPUDevice` 关联起来。
+接下来要把 `GPUDevice` 和 `<canvas>` 连接起来：
 
 ```html
-<canvas height="150" width="300"></canvas>
+<canvas width="300" height="150"></canvas>
 ```
 
-```javascript
+```js
 const canvas = document.querySelector("canvas");
 const context = canvas.getContext("webgpu");
+
+if (!context) {
+    throw new Error("Failed to get WebGPU canvas context.");
+}
+
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+
 context.configure({
     device,
     format: presentationFormat,
 });
 ```
 
-我们从画布中获取一个 `webgpu` 上下文。我们会询问系统首选的画布格式是什么，可能是 `rgba8unorm` 或 `bgra8unorm`。选择首选格式通常会有更好的兼容性与性能。
+这里的 `context.configure(...)` 很重要，它告诉浏览器：
+
+- 这块画布由哪个 `device` 驱动
+- 画布最终显示颜色时采用什么像素格式
+
+`getPreferredCanvasFormat()` 返回当前环境下更合适的画布格式，通常是 `rgba8unorm` 或 `bgra8unorm`。选择首选格式通常会有更好的兼容性与性能。
 
 ::: tip rgba8unorm vs bgra8unorm
 `rgba8unorm` 和 `bgra8unorm` 都是 8 位无符号整数格式，每个分量占用 8 位，取值范围是 0 到 255。它们的主要区别在于颜色分量的排列顺序。
@@ -87,15 +86,76 @@ context.configure({
 另外 `unorm` 中的 `u` 表示无符号整数格式，`norm` 表示归一化，即将 0-255 的取值范围映射到 0-1。
 :::
 
-然后我们通过调用 `context.configure(...)` 将 `format` 等参数传入 WebGPU 画布上下文。我们还将 `device` 传入画布，从而将画布与我们刚刚创建的设备关联起来。
+## 第三步：写一个最小着色器
 
-现在我们已经做好了准备工作。在开始写示例之前，建议先通读一遍[图形渲染流程](/WebGPU/graphicsRendering)这一章，建立从顶点到像素的整体直觉。
+WebGPU 不会替你“自动画图”，你必须提供着色器。  
+这个例子里我们直接把三角形顶点硬编码在 WGSL 中：
 
-## 渲染管线
+```js
+const module = device.createShaderModule({
+    label: "triangle shader module",
+    code: `
+        @vertex
+        fn vs(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position) vec4f {
+            let positions = array(
+                vec4f(0.0, 0.5, 0.0, 1.0),
+                vec4f(-0.5, -0.5, 0.0, 1.0),
+                vec4f(0.5, -0.5, 0.0, 1.0),
+            );
+            return positions[vertexIndex];
+        }
 
-在一个工厂中，我们可以将原材料输送到车间流水线，经过流水线各个站点的加工后，最终产出产品。
+        @fragment
+        fn fs() -> @location(0) vec4f {
+            return vec4f(1.0, 0.0, 0.0, 1.0);
+        }
+    `,
+});
+```
 
-在 WebGPU 中，渲染管线就像一个工厂中的车间流水线。它将顶点数据作为输入，经过一系列的处理和转换，最终输出渲染到屏幕上的像素。
+这段 WGSL 里有两个入口函数：
+
+- `vs`：顶点着色器
+- `fs`：片元着色器
+
+### 顶点着色器在做什么
+
+`vs` 使用 `@builtin(vertex_index)` 读取当前顶点索引。  
+当我们后面调用 `draw(3)` 时，它会依次拿到：
+
+- `0`
+- `1`
+- `2`
+
+然后从 `positions` 数组里取出对应顶点位置并返回。`->` 表示 `vs` 函数的返回值类型为 `@builtin(position) vec4f`。`@builtin(position)` 是 WGSL 中的一个内建变量，用于指定顶点着色器的输出位置。
+
+也就是说，这里并没有使用顶点缓冲区，而是直接在着色器里写死了三角形的 3 个点。
+
+### 片元着色器在做什么
+
+`fs` 非常简单：它返回固定红色。
+
+```wgsl
+return vec4f(1.0, 0.0, 0.0, 1.0);
+```
+
+这表示输出 RGBA：
+
+- 红色 `1.0`
+- 绿色 `0.0`
+- 蓝色 `0.0`
+- Alpha `1.0`
+
+::: tip
+在这个例子里：
+
+- 顶点着色器执行 3 次，对应 3 个顶点
+- 片元着色器会对被三角形覆盖到的每个片元执行一次
+:::
+
+## 第四步：创建渲染管线
+
+着色器写好后，还要告诉 WebGPU：这次渲染该如何组织。
 
 ```js
 const pipeline = device.createRenderPipeline({
@@ -113,135 +173,30 @@ const pipeline = device.createRenderPipeline({
 });
 ```
 
-现在我们使用 `GPUDevice` 创建了一个渲染管线 `GPURenderPipeline`。`label` 是一个可选参数，用于给渲染管线起一个名字。这里我们将它设置为 `"triangle pipeline"`。
+这里最关键的是三部分：
 
-`layout` 是一个可选参数，用于指定渲染管线的布局。这里我们将它设置为 `"auto"`，表示让 WebGPU 自动选择布局。实际上，我们也可以手动指定布局，但是手动指定布局需要我们对 WebGPU 的布局系统有一定的了解，这里我们先不展开。
+- `vertex`：使用哪个顶点着色器入口
+- `fragment`：使用哪个片元着色器入口
+- `targets`：片元着色器的输出要写到什么格式的颜色目标中
 
-`vertex` 和 `fragment` 用来**配置**上一章[图形渲染流程](/WebGPU/graphicsRendering)的顶点着色器和片元着色器。
-
-`module` 是一个 `GPUShaderModule` 对象，用于存储 [WGSL](../WGSL/introduction.md)（WebGPU Shader Language）着色器代码。我们稍后会创建 `module`，并在其中定义顶点着色器和片元着色器。
-
-`entryPoint` 用于指定着色器模块中的入口函数名。这里我们将它设置为 `"vs"` 和 `"fs"`，表示顶点着色器和片元着色器的入口函数分别是 `vs` 和 `fs`。
-
-`targets` 定义片元着色器（Fragment Shader）最终要把颜色输出到哪里、以及输出的格式和规则 的核心配置项。
-
-你可以把它想象成：片元着色器是 “画师”，`targets` 就是告诉画师 “要把画（颜色）画在哪个画布上、画布支持什么颜色格式、需不需要混合 / 透明效果”。
-
-这里我们将 `format` 传入，指定输出目标的颜色格式，并且必须和目标纹理的格式完全匹配，也就是我们在 `context.configure` 配置的 `format`，否则会报错。
-
-下一步我们来创建 `GPUShaderModule`。
-
-## 创建 GPUShaderModule
+其中：
 
 ```js
-const module = device.createShaderModule({
-    label: "triangle shader module",
-    code: `
-        @vertex
-        fn vs(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position) vec4f {
-            let positions = array(
-                vec4f(0.0, 0.5, 0.0, 1.0),
-                vec4f(-0.5, -0.5, 0.0, 1.0),
-                vec4f(0.5, -0.5, 0.0, 1.0),
-            );
-            return positions[vertexIndex];
-        }
-        // WGSL 片元着色器：输出 @location(0) 对应 targets[0]
-        @fragment
-        fn fs() -> @location(0) vec4f {
-            return vec4f(1.0, 0.0, 0.0, 1.0);
-        }
-    `,
-});
+targets: [{ format: presentationFormat }]
 ```
 
-`module` 是一个 `GPUShaderModule` 对象，用于存储 WGSL 着色器代码。 WGSL 是在 GPU 中运行的着色器语言，所以我们需要将 WGSL 代码以字符串的形式传入 `module` 中。
+必须和 `context.configure(...)` 使用的画布格式一致，否则 pipeline 无法正确工作。
 
-`@vertex` 和 `@fragment` 是 WGSL 中的装饰器（Decorator），用于标记顶点着色器函数。 上面的 `vs` 函数就是一个顶点着色器入口函数，上面的 `fs` 函数就是一个片元着色器入口函数。
+`entryPoint` 用于指定着色器模块中的入口函数名。这里我们将它设置为 `"vs"` 和 `"fs"`，表示顶点着色器和片元着色器的入口函数分别是 `vs` 和 `fs`。`entryPoint` 可以省略前提是你的 WGSL 里有只有一个顶点着色器入口和一个片元着色器入口，如果有多个顶点着色器入口或者多个片元着色器入口那你必须写明 `entryPoint`。 
 
-**vs 函数**
+## 第五步：编码绘制命令
 
-上一章的渲染流程中，我们说过，渲染一个三角形，需要输入三个顶点数据，顶点着色器会依次处理这三个顶点。上面代码中我们将这三个顶点数据存储在 `positions` 数组中，然后根据 `vertexIndex` 来返回对应的顶点数据。
-
-什么是 `vertexIndex` 呢？请看下面的伪代码：
-
-```js
-Array.from({ length: 3 }).forEach((_, vertexIndex) => {
-    const positions = [
-        [0.0, 0.5, 0.0, 1.0],
-        [-0.5, -0.5, 0.0, 1.0],
-        [0.5, -0.5, 0.0, 1.0],
-    ];
-    return positions[vertexIndex];
-});
-```
-
-`vs` 函数会执行 3 次，`vertexIndex` 就是每次执行时的索引，分别是 0, 1, 2。
-
-`@builtin(vertex_index) vertexIndex: u32`：
-
-`@builtin(vertex_index)` 是 WGSL 中的一个内建变量（Built-in Variable），用于获取当前顶点的索引，我们给它命名为 `vertexIndex`。
-
-`vertexIndex` 类型为 `u32` 32 位无符号整型。
-
-`->` 表示 `vs` 函数的返回值类型为 `@builtin(position) vec4f`。`@builtin(position)` 是 WGSL 中的一个内建变量，用于指定顶点着色器的输出位置。
-
-**vs 函数总结**
-
-本例的 `vs` 函数的作用仅仅只是将三角形的三个顶点数据硬编码到 WGSL 代码中。然后根据 `vertexIndex` 来返回对应的顶点数据到对应的内建变量中。
-
-**fs 函数**
-
-上一章的渲染流程中，我们说过片元着色器对“每个片元”执行一次，用来计算最终写入颜色目标的值。
-
-`fn fs() -> @location(0) vec4f {`：
-
-`fs` 函数是一个片元着色器入口函数，它的返回值类型为 `@location(0) vec4f`。`@location(0)` 用于指定片元着色器的输出位置。
-
-**fs 函数总结**
-
-本例的 `fs` 函数的作用仅仅只是将每个片元的颜色设置为红色。
-
-::: tip
-`fs` 和 `vs` 函数的执行次数是不同的。`vs` 函数会对每个顶点执行一次，而 `fs` 函数会对每个片元执行一次。
-
-`vec4f` 是 WGSL 中的一个向量类型，用于表示一个四维向量，既可以表示位置信息也可以表示颜色信息。
-
-在 `fs` 函数中是一个 RGBA 颜色值，分别表示红色、绿色、蓝色、透明度。这里我们将它设置为红色，透明度为 1.0。
-
-在 `vs` 函数中，分别表示顶点的位置坐标 x, y, z, w。x, y, z 分别表示顶点在 3 维空间中的位置坐标，w 表示顶点的齐次坐标。现在我们不需要知道 w 的含义，设置为 1 即可，只需要知道 x, y, z。
-:::
-
-::: tip
-WGSL 代码中的 `vs` 函数对应 `pipeline` 中的 `vertex.entryPoint` 配置项；`fs` 函数对应 `pipeline` 中的 `fragment.entryPoint` 配置项。
-
-```js
-const pipeline = device.createRenderPipeline({
-  ...
-  vertex: {
-    module,
-    entryPoint: "vs",
-  },
-  fragment: {
-    module,
-    entryPoint: "fs",
-    targets: [{ format: presentationFormat }],
-  },
-  ...
-});
-```
-
-一个 WGSL 代码中可以定义多个顶点着色器和多个片元着色器入口函数。此时需要用 `entryPoint` 指定到底使用哪一个函数作为入口。
-
-在本例中 `entryPoint` 可以省略，因为我们的 WGSL 代码中只有一个顶点着色器和一个片元着色器入口函数，所以 WebGPU 可以自动识别。
-:::
-
-## 绘制命令
-
-上面的渲染管线只是配置了渲染流程。我们需要创建绘制命令（Draw Command）来告诉 GPU 如何绘制。
+到这里为止，我们只是“准备好了渲染规则”，但还没有真正开始绘制。  
+真正的绘制发生在命令编码阶段：
 
 ```js
 const commandEncoder = device.createCommandEncoder();
+
 const passEncoder = commandEncoder.beginRenderPass({
     colorAttachments: [
         {
@@ -251,32 +206,36 @@ const passEncoder = commandEncoder.beginRenderPass({
             storeOp: "store",
         },
     ],
-    // 如果 pipeline.fragment.targets 有第二个 target，那么这里也需要提供第二个 colorAttachment
 });
+
 passEncoder.setPipeline(pipeline);
 passEncoder.draw(3);
 passEncoder.end();
+
 const commandBuffer = commandEncoder.finish();
 device.queue.submit([commandBuffer]);
 ```
 
-首先使用 `device.createCommandEncoder()` 创建一个命令编码器（Command Encoder）。命令编码器的作用是将渲染命令编码为 GPU 可以理解的指令序列。
+这段代码可以按顺序理解：
 
-然后使用 `commandEncoder.beginRenderPass()` 创建一个渲染通道编码器（Render Pass Encoder）。渲染通道编码器的作用是将渲染命令编码为渲染通道指令序列。
+### 1. 创建命令编码器
 
-`passEncoder.setPipeline(pipeline)` 用于设置渲染通道编码器的渲染管线（Render Pipeline）。渲染管线是一个包含了渲染流程配置的对象，我们在前面已经创建了一个渲染管线 `pipeline`，现在需要将它设置到渲染通道编码器中。
+```js
+const commandEncoder = device.createCommandEncoder();
+```
 
-`passEncoder.draw(3)` 用于绘制 3 个顶点。这里的 3 表示绘制执行 3 次，`vs` 函数执行 3 次。
+你可以把它理解为“开始录制一组 GPU 命令”。
 
-`passEncoder.end()` 用于结束渲染通道编码器。
+### 2. 开始一个 render pass
 
-`commandEncoder.finish()` 用于将渲染通道编码器编码的指令序列提交给命令编码器。
+```js
+const passEncoder = commandEncoder.beginRenderPass({...});
+```
 
-`device.queue.submit([commandBuffer])` 用于将命令缓冲区（Command Buffer）提交给 GPU 队列（Queue）。队列是一个 FIFO（First-In-First-Out）队列，用于存储待执行的命令缓冲区。
+render pass 描述的是：  
+这一次渲染要把结果写到哪里，以及开始渲染前如何处理这块目标区域。
 
-提交命令缓冲区后，GPU 会按照队列中的顺序执行这些命令缓冲区。
-
-我们需要重点关注的是 `colorAttachments` 数组：
+### 3. 指定颜色附件
 
 ```js
 {
@@ -287,42 +246,24 @@ device.queue.submit([commandBuffer]);
 }
 ```
 
-`view` 用于指定渲染目标（Render Target），这里我们使用 `context.getCurrentTexture().createView()` 创建一个渲染目标视图（Render Target View）。
+这里最重要的几个字段是：
 
-直接说“渲染目标视图”，你可能会感到困惑。我们来解释一下：
+- `view`
+  - 指向这次渲染要写入的目标纹理视图
+  - `context.getCurrentTexture()` 取到当前帧对应的画布纹理
+  - `createView()` 则创建这个纹理的 `GPUTextureView`
 
-`context` WebGPU 上下文对象，`getCurrentTexture()` 方法用于获取一张**纹理**。现在你可以理解为获取了一张**图片**。该图片的尺寸和 canvas 的尺寸是一致的。
+- `loadOp: "clear"`
+  - 表示绘制前先清空颜色附件
 
-```html
-<canvas width="400" height="300"></canvas>
-// getCurrentTexture() 返回的图片尺寸是 400x300
+- `clearValue`
+  - 指定清空成什么颜色
+  - 本例里是绿色背景
 
-<canvas width="1000" height="500"></canvas>
-// getCurrentTexture() 返回的图片尺寸是 1000x500
-```
+- `storeOp: "store"`
+  - 表示 render pass 结束后，把结果保留下来用于显示
 
-`createView()` 方法用于创建一个渲染目标视图，渲染目标视图让 GPU 可以将渲染结果绘制到上面说的图片中。
-::: info
-createView 方法是可选的，也就是说：view 可以直接等于 context.getCurrentTexture() 这和你的浏览器版本有关，旧版本可能不支持。
-如果你写 `view = context.getCurrentTexture()`，那么 WebGPU 会在内部调用 `createView` 方法创建一个渲染目标视图。
-:::
-
-`loadOp` 用于指定渲染目标的加载操作（Load Operation），可选值有 `"clear"` 和 `"load"`。
-这里我们设置为 `"clear"`，表示在绘制前将渲染目标清除为 `clearValue`，本例中为绿色。
-`"load"` 表示在绘制前将渲染目标的内容加载到内存中。
-
-`storeOp` 用于指定渲染目标的存储操作（Store Operation），可选值有 `"store"` 和 `"discard"`。
-这里我们设置为 `"store"`，表示在绘制完成后将渲染目标的内容存储到内存中。
-`"discard"` 表示在绘制完成后将渲染目标的内容丢弃，不存储到内存中。
-
-
-::: tip
-你应该注意到了 `colorAttachments`、`pipeline.fragment.targets` 都是数组，并且我们只定义了第一个元素，实际上它们也是有关系的。
-
-`pipeline.fragment.targets` 定义了渲染管线的“输出槽（output slots）”——也就是每个颜色输出的格式（format）、混合（blend）等状态；而在开始 render pass 时，`colorAttachments` 数组则把具体的纹理视图（GPUTextureView）绑定到这些输出槽上。两者按索引一一对应。
-
-在 WGSL 着色器程序中：
-
+::: tip 几个“0”的对应关系
 ```wgsl
 @fragment
 fn fs() -> @location(0) vec4f {
@@ -330,20 +271,64 @@ fn fs() -> @location(0) vec4f {
 }
 ```
 
-`@location(n)` 对应第 n 个输出槽（即 `pipeline.fragment.targets[n]`），render pass 中 `colorAttachments[n]` 则是该槽当前绑定的目标纹理视图。
-
-更准确的说法是：`pipeline` 定义“槽”的格式和行为，render pass 的 `colorAttachments` 绑定“具体的画布/纹理”。
+上面代码中的 `@location(0)` 的“0”对应render pass中 `colorAttachments[0]`, 表示顶点着色器将颜色输出到 `colorAttachments[0]` 这个颜色附件。 `pipeline.fragment.targets[0]` 片元着色器的输出要写到什么格式的 `colorAttachments[0]` 颜色附件中。
 :::
+
+### 4. 设置管线并发出 draw
+
+```js
+passEncoder.setPipeline(pipeline);
+passEncoder.draw(3);
+```
+
+`setPipeline(...)` 表示当前 render pass 使用哪条渲染管线。
+
+`draw(3)` 表示绘制 3 个顶点。  
+由于本例里没有索引缓冲、也没有顶点缓冲，WebGPU 会让顶点着色器按 `vertex_index = 0, 1, 2` 执行三次，正好组成一个三角形。
+
+### 5. 结束、完成、提交
+
+```js
+passEncoder.end();
+const commandBuffer = commandEncoder.finish();
+device.queue.submit([commandBuffer]);
+```
+
+这三步分别表示：
+
+- render pass 结束
+- 命令录制完成
+- 把命令提交到 GPU 队列执行
+
+到这里，三角形才会真正出现在画布上。
+
+## 这一章的最小心智模型
+
+画这个三角形时，你实际上做了下面这些事：
+
+1. 拿到 `device`
+2. 配好 `canvas`
+3. 写了顶点着色器和片元着色器
+4. 用它们创建 render pipeline
+5. 开一个 render pass
+6. 调用 `draw(3)`
+7. 提交命令给 GPU
+
+如果你能把这 7 步串起来，就已经掌握了 WebGPU 渲染最基础的骨架。
 
 ## 在线编辑与预览
 
 <WebGpuTrianglePlayground />
 
-现在你可以在在线编辑区编辑代码，试着修改 `loadOp`、`storeOp` 等参数然后点击“更新预览”按钮即可预览渲染结果。
+现在你可以直接修改代码并观察结果。建议优先尝试：
 
-另外，本例中的 canvas 的 width 和 height 分别是 `300` 和 `150`。
+1. 修改 `clearValue`，观察背景颜色变化
+2. 修改 `fs` 返回值，观察三角形颜色变化
+3. 修改 `positions` 数组，观察三角形位置变化
 
-三角形的三个顶点是：
+## 最后再看一眼顶点坐标
+
+本例中的三角形顶点是：
 
 ```wgsl
 let positions = array(
@@ -353,4 +338,14 @@ let positions = array(
 );
 ```
 
-你应该发现了，在 WGSL 中我们定义顶点的时候没有使用像素，因为不管你的 canvas 的尺寸有多大，顶点的 x、y 都是归一化的。在本例里（`w = 1`），它们会直接映射到标准化设备坐标（NDC），范围是 `[-1, 1]`。结合上一章的[标准化设备坐标](./graphicsRendering.md#标准化设备坐标)，你可以尝试修改 `positions` 数组中的值来改变三角形的位置。
+这些坐标不是像素坐标。  
+在这个例子里，`w = 1.0`，所以它们可以直接按裁剪空间 / NDC 的直觉来理解：
+
+- `x`、`y` 大致落在 `[-1, 1]`
+- `(0, 0)` 在画布中心附近
+- `0.5` 表示偏向右边或上边
+- `-0.5` 表示偏向左边或下边
+
+所以不管 canvas 是 `300 × 150`，还是更大的尺寸，这组顶点描述的都仍然是“画面中心附近的一个三角形”。
+
+如果你对这些坐标的意义还不够直观，建议回头再看一遍[图形渲染流程](./graphicsRendering.md)里关于标准化设备坐标的部分。

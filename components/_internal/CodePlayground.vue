@@ -1,71 +1,100 @@
 <template>
-    <div class="wgp-root">
+    <div :class="['wgp-root', isDark ? 'wgp-root-dark' : 'wgp-root-light']">
         <div class="wgp-toolbar">
-            <button class="wgp-btn" type="button" @click="run">更新预览</button>
-            <button class="wgp-btn" type="button" @click="openInNewTab">
-                新标签页打开
-            </button>
+            <div class="wgp-toolbar-copy">
+                <div class="wgp-toolbar-title">在线 Playground</div>
+                <p class="wgp-toolbar-desc">
+                    在同一处编辑 HTML、CSS 和 JS，并立即查看运行结果。
+                </p>
+            </div>
+
+            <div class="wgp-toolbar-actions">
+                <button class="wgp-btn wgp-btn-primary" type="button" @click="run">
+                    更新预览
+                </button>
+                <button class="wgp-btn wgp-btn-secondary" type="button" @click="openInNewTab">
+                    新标签页打开
+                </button>
+            </div>
         </div>
 
-        <div>
-            <div class="wgp-editor">
-                <div :class="['wgp-tabs', { 'wgp-tabs-light': !isDark }]">
-                    <button
-                        class="wgp-tab"
-                        :class="{ active: activeTab === 'html' }"
-                        type="button"
-                        @click="activeTab = 'html'"
-                    >
-                        HTML
-                    </button>
-                    <button
-                        class="wgp-tab"
-                        :class="{ active: activeTab === 'css' }"
-                        type="button"
-                        @click="activeTab = 'css'"
-                    >
-                        CSS
-                    </button>
-                    <button
-                        class="wgp-tab"
-                        :class="{ active: activeTab === 'js' }"
-                        type="button"
-                        @click="activeTab = 'js'"
-                    >
-                        JS
-                    </button>
+        <div class="wgp-workspace">
+            <section class="wgp-panel wgp-editor-panel">
+                <div class="wgp-panel-header">
+                    <div>
+                        <div class="wgp-panel-title">代码编辑区</div>
+                        <div class="wgp-panel-subtitle">{{ activeTabLabel }}</div>
+                    </div>
+
+                    <div class="wgp-tabs">
+                        <button
+                            class="wgp-tab"
+                            :class="{ active: activeTab === 'html' }"
+                            type="button"
+                            @click="activeTab = 'html'"
+                        >
+                            HTML
+                        </button>
+                        <button
+                            class="wgp-tab"
+                            :class="{ active: activeTab === 'css' }"
+                            type="button"
+                            @click="activeTab = 'css'"
+                        >
+                            CSS
+                        </button>
+                        <button
+                            class="wgp-tab"
+                            :class="{ active: activeTab === 'js' }"
+                            type="button"
+                            @click="activeTab = 'js'"
+                        >
+                            JS
+                        </button>
+                    </div>
                 </div>
 
-                <MonacoEditor
-                    v-if="activeTab === 'html'"
-                    v-model="html"
-                    language="html"
-                    class="wgp-monaco"
-                    :theme="monacoTheme"
-                />
-                <MonacoEditor
-                    v-else-if="activeTab === 'css'"
-                    v-model="css"
-                    language="css"
-                    class="wgp-monaco"
-                    :theme="monacoTheme"
-                />
-                <MonacoEditor
-                    v-else
-                    v-model="js"
-                    language="javascript"
-                    class="wgp-monaco"
-                    :theme="monacoTheme"
-                />
-            </div>
+                <div class="wgp-editor-body">
+                    <MonacoEditor
+                        v-if="activeTab === 'html'"
+                        v-model="html"
+                        language="html"
+                        class="wgp-monaco"
+                        :theme="monacoTheme"
+                    />
+                    <MonacoEditor
+                        v-else-if="activeTab === 'css'"
+                        v-model="css"
+                        language="css"
+                        class="wgp-monaco"
+                        :theme="monacoTheme"
+                    />
+                    <MonacoEditor
+                        v-else
+                        v-model="js"
+                        language="javascript"
+                        class="wgp-monaco"
+                        :theme="monacoTheme"
+                    />
+                </div>
+            </section>
 
-            <div class="wgp-editor-preview-wrapper">
-                <iframe
-                    ref="iframeEl"
-                    class="wgp-iframe"
-                    sandbox="allow-scripts allow-same-origin"
-                ></iframe>
-            </div>
+            <section class="wgp-panel wgp-preview-panel">
+                <div class="wgp-panel-header">
+                    <div>
+                        <div class="wgp-panel-title">预览结果</div>
+                        <div class="wgp-panel-subtitle">点击“更新预览”后在右侧运行</div>
+                    </div>
+                </div>
+
+                <div class="wgp-preview-body">
+                    <iframe
+                        ref="iframeEl"
+                        class="wgp-iframe"
+                        sandbox="allow-scripts allow-same-origin"
+                    ></iframe>
+                </div>
+            </section>
         </div>
     </div>
 </template>
@@ -100,6 +129,14 @@ const js = ref(props.js);
 const iframeEl = ref<HTMLIFrameElement | null>(null);
 
 const monacoTheme = computed(() => (isDark.value ? "vs-dark" : "vs"));
+const activeTabLabel = computed(() => {
+    const labels: Record<Tab, string> = {
+        html: "结构与挂载节点",
+        css: "样式与布局表现",
+        js: "交互与运行逻辑",
+    };
+    return labels[activeTab.value];
+});
 
 const buildSrcDoc = () => {
     let doc = `<!doctype html>
@@ -149,70 +186,193 @@ onMounted(() => {
 
 <style scoped>
 .wgp-root {
-    border: 1px solid rgba(148, 163, 184, 0.35);
-    border-radius: 12px;
-    overflow: hidden;
+    --wgp-pane-height: 440px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 18px;
+    padding: 16px;
+    background:
+        radial-gradient(circle at top left, rgba(99, 102, 241, 0.08), transparent 32%),
+        var(--vp-c-bg-soft);
+    box-shadow:
+        0 14px 36px rgba(15, 23, 42, 0.07),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.wgp-root-dark {
+    background:
+        radial-gradient(circle at top left, rgba(99, 102, 241, 0.16), transparent 36%),
+        linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.84));
+}
+
+.wgp-root-light {
+    background:
+        radial-gradient(circle at top left, rgba(99, 102, 241, 0.08), transparent 32%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.96));
 }
 
 .wgp-toolbar {
     display: flex;
-    align-items: center;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
     gap: 12px;
-    padding: 10px 12px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-    background: rgba(2, 6, 23, 0.55);
+    margin-bottom: 16px;
+}
+
+.wgp-toolbar-copy {
+    min-width: 0;
+}
+
+.wgp-toolbar-title {
+    font-size: 16px;
+    line-height: 1.2;
+    font-weight: 700;
+    color: var(--vp-c-text-1);
+    margin-bottom: 6px;
+}
+
+.wgp-toolbar-desc {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--vp-c-text-2);
+}
+
+.wgp-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .wgp-btn {
     appearance: none;
-    border: 1px solid rgba(148, 163, 184, 0.35);
-    background: rgba(30, 41, 59, 0.55);
-    color: rgba(226, 232, 240, 0.95);
-    border-radius: 10px;
-    padding: 6px 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    padding: 8px 14px;
     cursor: pointer;
     font-size: 13px;
+    line-height: 1;
+    font-weight: 600;
+    transition:
+        transform 0.18s ease,
+        background-color 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
 }
 
 .wgp-btn:hover {
-    background: rgba(30, 41, 59, 0.8);
+    transform: translateY(-1px);
 }
 
-.wgp-editor {
+.wgp-btn-primary {
+    border: 1px solid rgba(99, 102, 241, 0.55);
+    background: linear-gradient(180deg, rgba(99, 102, 241, 0.92), rgba(79, 70, 229, 0.92));
+    color: #fff;
+    box-shadow: 0 10px 20px rgba(79, 70, 229, 0.16);
+}
+
+.wgp-btn-primary:hover {
+    background: linear-gradient(180deg, rgba(99, 102, 241, 1), rgba(79, 70, 229, 1));
+}
+
+.wgp-btn-secondary {
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: rgba(148, 163, 184, 0.08);
+    color: var(--vp-c-text-1);
+}
+
+.wgp-btn-secondary:hover {
+    background: rgba(148, 163, 184, 0.14);
+}
+
+.wgp-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    gap: 16px;
+    align-items: stretch;
+}
+
+.wgp-panel {
     min-width: 0;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(10px);
+}
+
+.wgp-root-light .wgp-panel {
+    background: rgba(255, 255, 255, 0.78);
+}
+
+.wgp-root-dark .wgp-panel {
+    background: rgba(2, 6, 23, 0.38);
+}
+
+.wgp-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.wgp-panel-title {
+    font-size: 14px;
+    line-height: 1.2;
+    font-weight: 700;
+    color: var(--vp-c-text-1);
+    margin-bottom: 4px;
+}
+
+.wgp-panel-subtitle {
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--vp-c-text-2);
+}
+
+.wgp-editor-body,
+.wgp-preview-body {
+    height: var(--wgp-pane-height);
 }
 
 .wgp-tabs {
     display: flex;
     gap: 6px;
-    padding: 8px 8px 0;
-    margin-bottom: 8px;
-}
-
-.wgp-tabs-light > .wgp-tab {
-    background: rgba(226, 232, 240, 0.35);
-    color: rgba(2, 6, 23, 0.9);
+    flex-wrap: wrap;
+    padding: 4px;
+    border-radius: 12px;
+    background: rgba(148, 163, 184, 0.1);
 }
 
 .wgp-tab {
     appearance: none;
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    background: rgba(2, 6, 23, 0.35);
-    color: rgba(226, 232, 240, 0.9);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--vp-c-text-2);
     border-radius: 10px;
-    padding: 6px 10px;
+    padding: 7px 12px;
     cursor: pointer;
     font-size: 12px;
+    font-weight: 600;
+    transition:
+        background-color 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease;
 }
 
 .wgp-tab.active {
-    background: rgba(99, 102, 241, 0.25);
-    border-color: rgba(99, 102, 241, 0.55);
+    background: rgba(99, 102, 241, 0.16);
+    border-color: rgba(99, 102, 241, 0.28);
+    color: var(--vp-c-text-1);
 }
 
 .wgp-monaco {
     overflow: hidden;
+    height: 100%;
 }
 
 .wgp-iframe {
@@ -220,6 +380,11 @@ onMounted(() => {
     height: 100%;
     border: 0;
     display: block;
+    background: #fff;
+}
+
+.wgp-editor-body :deep(.monaco-container) {
+    height: var(--wgp-pane-height) !important;
 }
 
 .wgp-root:deep(.monaco-editor),
@@ -228,13 +393,46 @@ onMounted(() => {
     background: transparent !important;
 }
 
-.wgp-editor-preview-wrapper {
-    height: 300px;
+.wgp-root:deep(.monaco-editor),
+.wgp-root:deep(.monaco-editor-background),
+.wgp-root:deep(.margin),
+.wgp-root:deep(.monaco-editor .inputarea.ime-input) {
+    background: transparent !important;
 }
 
 @media (max-width: 960px) {
-    .wgp-editor-preview-wrapper {
-        height: 200px;
+    .wgp-root {
+        --wgp-pane-height: 360px;
+        padding: 14px;
+    }
+
+    .wgp-workspace {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .wgp-root {
+        --wgp-pane-height: 300px;
+        padding: 12px;
+        border-radius: 16px;
+    }
+
+    .wgp-panel-header {
+        flex-direction: column;
+    }
+
+    .wgp-tabs {
+        width: 100%;
+    }
+
+    .wgp-toolbar-actions {
+        width: 100%;
+    }
+
+    .wgp-btn {
+        flex: 1 1 auto;
+        justify-content: center;
     }
 }
 </style>
