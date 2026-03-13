@@ -50,6 +50,7 @@ export default defineConfig({
           text: 'WGSL',
           items: [
             { text: '介绍', link: '/WGSL/introduction' },
+            { text: '基础', link: '/WGSL/fundamental' },
             { text: '数据内存布局', link: '/WGSL/dataMemoryLayout' },
           ]
         },
