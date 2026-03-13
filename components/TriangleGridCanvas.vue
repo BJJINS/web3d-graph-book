@@ -36,7 +36,7 @@
         <section class="triangle-grid-card">
           <h3 class="triangle-grid-card-title">片元样本</h3>
 
-          <template v-if="hoveredGridCell && hoveredFragment">
+          <template v-if="hoveredGridCell && hoveredFragment && draggingIndex === null">
             <div class="triangle-grid-sample">
               <div class="triangle-grid-swatch" :style="sampleSwatchStyle"></div>
               <div class="triangle-grid-sample-meta">
