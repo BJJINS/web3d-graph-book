@@ -53,6 +53,7 @@ export default defineConfig({
             { text: '基础', link: '/WGSL/fundamental' },
             { text: '数据内存布局', link: '/WGSL/dataMemoryLayout' },
             { text: '顶点着色器', link: '/WGSL/vertexShader' },
+            { text: '片元着色器', link: '/WGSL/fragmentShader' },
           ]
         },
       ],

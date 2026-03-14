@@ -106,6 +106,8 @@ webGL的深度 `z` 的 NDC 范围是 `[-1, 1]`，`z = -1` 代表近平面，`z =
 
 ![剪裁空间中的图元剪裁示意图](/webgpu/clip-space-clipping.svg)
 
+<a id="rasterization"></a>
+
 ### 4. 光栅化（Rasterization）
 
 虽然虚拟3D世界的几何信息是三维的，但由于目前用于显示的设备都是二维的，所以在真正执行光栅化工作之前，需要将虚拟3D世界中的物体投影到视平面（可以理解为屏幕）上。
@@ -129,13 +131,15 @@ webGL的深度 `z` 的 NDC 范围是 `[-1, 1]`，`z = -1` 代表近平面，`z =
 
 ![顶点颜色插值示意图](/webgpu/attribute-interpolation.svg)
 
+<a id="triangleGridCanvas-demo"></a>
+
 下面是一个小demo，你可以将三角形包围的所有方格理解为图元。
 
 <TriangleGridCanvas/>
 
 ### 5. 片元着色器（Fragment Shader）
 
-片元着色器对“每个片元”执行一次，用来计算最终写入颜色目标的值，例如：
+[片元着色器](../WGSL/fragmentShader.md)对“每个片元”执行一次，用来计算最终写入颜色目标的值，例如：
 
 - 计算颜色（基于插值后的颜色/法线/纹理坐标等）
 - 采样纹理并组合材质参数
