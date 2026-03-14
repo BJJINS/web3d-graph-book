@@ -43,7 +43,7 @@ import TriangleGridCanvas from '../components/TriangleGridCanvas.vue'
 
 ### 2. 顶点着色器（Vertex Shader）
 
-顶点着色器是几何处理的入口。它对“每个顶点”执行一次，绘制一个三角形时顶点着色器会执行 3 次。
+[顶点着色器](../WGSL/vertexShader.md)是几何处理的入口。它对“每个顶点”执行一次，绘制一个三角形时顶点着色器会执行 3 次。
 
 顶点着色器用来完成两类任务：
 
