@@ -40,6 +40,7 @@ export default defineConfig({
                 { text: '绘制一个三角形', link: '/WebGPU/triangleExample' },
                 { text: '顶点缓冲区', link: '/WebGPU/vertexBuffer' },
                 { text: 'Inter-stage 变量', link: '/WebGPU/inter-stage' },
+                { text: 'uniform变换三角形', link: '/WebGPU/transformByUniform' },
               ]
             },
           ]
@@ -54,6 +55,7 @@ export default defineConfig({
             { text: '数据内存布局', link: '/WGSL/dataMemoryLayout' },
             { text: '顶点着色器', link: '/WGSL/vertexShader' },
             { text: '片元着色器', link: '/WGSL/fragmentShader' },
+            { text: 'Uniform', link: '/WGSL/uniform' },
           ]
         },
       ],
