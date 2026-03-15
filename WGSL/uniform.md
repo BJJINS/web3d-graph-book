@@ -154,19 +154,6 @@ fn vsMain(@location(0) coords: vec2f) -> @builtin(position) vec4f {
 
 这就是 uniform 在图形程序里最常见的工作方式之一。
 
-### 为什么这里要把 `vec2f` 扩成 `vec4f`
-
-因为图形渲染里常见的变换矩阵通常是 `4x4`。  
-因此，一个二维或三维位置在参与这类矩阵运算前，往往会被扩展成四维向量。
-
-在入门阶段，你先把它记成：
-
-- `x`、`y` 来自原始坐标
-- `z` 先补成 `0.0`
-- `w` 常写成 `1.0`
-
-至于为什么 4x4 矩阵能够统一处理平移、旋转、缩放这些变换，这部分原理你后面会在计算机图形学章节里系统展开；在这里，我们只需要先理解 **uniform 经常是这些变换参数的承载者**。
-
 ## uniform 不只给顶点阶段用，片元阶段也能读
 
 虽然 uniform 最常见的入门示例是“给[顶点着色器](./vertexShader.md)传矩阵”，但它并不只服务于顶点阶段。  
@@ -201,7 +188,8 @@ fn fsMain() -> @location(0) vec4f {
 
 ## 如何在 JavaScript 中使用 uniform
 
-// todo！
+- [使用 Uniform 控制三角形变换](../WebGPU/transformByUniform.md)
+
 
 ## uniform 不是拿来装“大批量数据”的
 
@@ -225,95 +213,10 @@ uniform buffer 的容量通常比 storage buffer 更保守。
 
 > **轻量、共享、只读的参数通道。**
 
-## 一个更贴近真实使用的例子
+## uniform 的内存对齐：按 16 字节节奏来设计
 
-很多时候，我们不会只传一个矩阵，而是把相关参数放进结构体：
+写 uniform 时，一个非常重要的工程习惯是：
 
-```wgsl
-struct TransformUniform {
-    model: mat4x4f,
-    viewProj: mat4x4f,
-};
+> **把 uniform buffer 按 16 字节节奏来设计。**
 
-@group(0) @binding(0) var<uniform> transform: TransformUniform;
-
-@vertex
-fn vsMain(@location(0) position: vec3f) -> @builtin(position) vec4f {
-    let worldPos = transform.model * vec4f(position, 1.0);
-    return transform.viewProj * worldPos;
-}
-```
-
-这段代码非常典型：
-
-- `model` 负责把模型坐标变到世界空间
-- `viewProj` 负责再把它送到后续渲染需要的位置空间
-
-你现在不需要把这些变换原理全部吃透，只需要先抓住一点：
-
-**uniform 经常就是这些“统一变换参数”的容器。**
-
-## 使用 uniform 时，最容易踩的坑
-
-### 1. 把 `@group/@binding` 和 `@location` 混为一谈
-
-这是最常见的错误之一。
-
-- `@location(...)` 不是拿来声明 uniform 的
-- uniform 一般通过 `@group(...) @binding(...)` 访问
-
-### 2. 忘记 uniform 是只读的
-
-`var<uniform>` 的数据是给着色器读取的，不是让你在着色器里随便改的。
-
-### 3. CPU 侧写入的数据布局和 WGSL 不一致
-
-这在 uniform 里非常常见，尤其是结构体里混合了：
-
-- `f32`
-- `vec3f`
-- `mat4x4f`
-
-这些类型时，很容易因为对齐和 padding 出错。  
-这一类问题建议和[数据内存布局](./dataMemoryLayout.md)一起看。
-
-### 4. 忘了给 buffer 加 `COPY_DST`
-
-如果创建 buffer 时没加：
-
-```js
-GPUBufferUsage.COPY_DST
-```
-
-后面就没法直接用 `queue.writeBuffer(...)` 把数据写进去。
-
-### 5. `@group(...)`、`@binding(...)` 和 JS 侧编号对不上
-
-例如 WGSL 写的是：
-
-```wgsl
-@group(0) @binding(1)
-```
-
-但 JavaScript 侧实际创建 bind group 时资源却绑定在 `binding: 0`，那着色器就会读不到你以为的那块数据。
-
-### 6. 手写矩阵时顺序想错
-
-WGSL 矩阵常按列主序思考。  
-如果你把矩阵值按错误顺序写进 `Float32Array`，最后的旋转、缩放或平移结果就会看起来“几乎对，但总是歪”。
-
-## 可以这样记住 uniform
-
-学 uniform 时，可以先把整件事压缩成这条主线：
-
-1. CPU 侧准备一小块共享参数
-2. 用 uniform buffer 把它交给 GPU
-3. 用 bind group 把这块资源接到 pipeline 上
-4. WGSL 通过 `@group(...) @binding(...) var<uniform> ...` 访问它
-5. 顶点或片元着色器在执行时反复读取这份共享数据
-
-当这条主线清楚以后，你就会发现 uniform 的角色非常稳定：
-
-- 它不是逐顶点输入
-- 它不是大批量存储容器
-- 它是着色器共享读取参数的标准入口之一
+- [uniform 布局要求](../WGSL/dataMemoryLayout.md#uniform-布局要求)

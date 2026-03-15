@@ -40,7 +40,7 @@ export default defineConfig({
                 { text: '绘制一个三角形', link: '/WebGPU/triangleExample' },
                 { text: '顶点缓冲区', link: '/WebGPU/vertexBuffer' },
                 { text: 'Inter-stage 变量', link: '/WebGPU/inter-stage' },
-                { text: 'uniform变换三角形', link: '/WebGPU/transformByUniform' },
+                { text: '基于 Uniform 的三角形变换', link: '/WebGPU/transformByUniform' },
               ]
             },
           ]

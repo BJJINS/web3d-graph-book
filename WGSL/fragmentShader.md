@@ -1,6 +1,6 @@
 # 片元着色器（Fragment Shader）
 
-片元着色器运行在[光栅化之后](../WebGPU/graphicsRendering.md#rasterization)，会对**每一个片元**执行一次。  
+片元着色器运行在[光栅化之后](../WebGPU/graphicsRendering.md#_4-光栅化-rasterization)，会对**每一个片元**执行一次。  
 它最核心的职责是：**决定这个片元最终要输出什么颜色，必要时也可以改写深度。**
 
 如果把[顶点着色器](./vertexShader.md)理解成“先把形状摆到正确位置”，那么片元着色器更像是“给这些片元决定外观”。
@@ -207,7 +207,7 @@ const pipeline = device.createRenderPipeline({
 
 这也是为什么很多三角形示例里，片元阶段代码明明很短，画面却能出现明显的渐变效果。
 
-你可以使用这个[示例](../WebGPU/graphicsRendering.md#triangleGridCanvas-demo)来体验颜色插值。
+你可以使用这个[示例](../WebGPU/graphicsRendering.md#下面是一个小demo-你可以将三角形包围的所有方格理解为图元)来体验颜色插值。
 
 ## 初学者最容易犯的错
 

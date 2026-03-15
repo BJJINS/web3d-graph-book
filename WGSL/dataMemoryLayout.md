@@ -870,7 +870,7 @@ const u32 = new Uint32Array(raw);
 这样在 JavaScript 侧更容易写，也更容易调试。
 :::
 
-## uniform 和 storage：为什么 uniform 往往更“保守”
+## uniform 布局要求
 
 > **为了兼容更广泛的实现，uniform buffer 往往需要按 16 字节节奏来布局数组和嵌套 struct。**
 
@@ -908,7 +908,7 @@ struct Outer {
 - b 4 字节
 - 所以 Inner 自己大小是 8 字节
 
-如果这是 storage 风格的紧凑思路，你可能会觉得：
+你可能会觉得：
 
 - inner 放在 0
 - c 放在 8
@@ -920,23 +920,6 @@ struct Outer {
 - 而要放到 16
 
 于是整个 Outer 会比你直觉里更大。
-
-如果你希望把这种“16 字节节奏”直接写死在类型里，而不是只停留在脑内推导，那么 `@align(16)` 和 `@size(16)` 就是很自然的工具。
-
-### 建议：大量紧凑数组，更适合 storage buffer
-
-如果你的数据天然就是“很多标量 / 很多小结构体 / 希望尽量少浪费空间”，那 `storage` buffer 往往比 `uniform` 更自然。
-
-这不是说 uniform 不能做，而是说：
-
-- uniform 更像“少量、频繁读取、布局保守的常量数据”
-- storage 更像“规模更大、布局更灵活的数据块”
-
-### 关于 `uniform_buffer_standard_layout`
-
-WGSL 规范提供了 `uniform_buffer_standard_layout` 扩展，用来放宽一部分 uniform 的额外限制，使它更接近 storage 的布局规则。
-
-但从教程和工程可移植性的角度看，如果你还没有显式围绕这个扩展做能力判断与适配，那么**继续按“uniform 以 16 字节为基本节奏”来设计，是最稳妥的默认策略。**
 
 ## 小结
 
