@@ -12,6 +12,9 @@
                 <button class="wgp-btn wgp-btn-primary" type="button" @click="run">
                     更新预览
                 </button>
+                <button class="wgp-btn wgp-btn-secondary wgp-btn-desktop-only" type="button" @click="openModal">
+                    弹窗模式
+                </button>
                 <button class="wgp-btn wgp-btn-secondary" type="button" @click="openInNewTab">
                     新标签页打开
                 </button>
@@ -97,11 +100,117 @@
             </section>
         </div>
     </div>
+
+    <Teleport to="body">
+        <div v-if="isModalOpen" class="wgp-modal-backdrop" @click.self="closeModal">
+            <div :class="['wgp-root', 'wgp-modal-shell', isDark ? 'wgp-root-dark' : 'wgp-root-light']">
+                <div class="wgp-toolbar wgp-modal-toolbar">
+                    <div class="wgp-toolbar-copy">
+                        <div class="wgp-toolbar-title">在线 Playground（大窗模式）</div>
+                        <p class="wgp-toolbar-desc">
+                            在更大的编辑区域中修改代码，并立即查看运行结果。
+                        </p>
+                    </div>
+
+                    <div class="wgp-toolbar-actions">
+                        <button class="wgp-btn wgp-btn-primary" type="button" @click="run">
+                            更新预览
+                        </button>
+                        <button class="wgp-btn wgp-btn-secondary" type="button" @click="openInNewTab">
+                            新标签页打开
+                        </button>
+                        <button class="wgp-btn wgp-btn-secondary" type="button" @click="closeModal">
+                            关闭
+                        </button>
+                    </div>
+                </div>
+
+                <div class="wgp-workspace wgp-workspace-modal">
+                    <section class="wgp-panel wgp-editor-panel">
+                        <div class="wgp-panel-header">
+                            <div>
+                                <div class="wgp-panel-title">代码编辑区</div>
+                                <div class="wgp-panel-subtitle">{{ activeTabLabel }}</div>
+                            </div>
+
+                            <div class="wgp-tabs">
+                                <button
+                                    class="wgp-tab"
+                                    :class="{ active: activeTab === 'html' }"
+                                    type="button"
+                                    @click="activeTab = 'html'"
+                                >
+                                    HTML
+                                </button>
+                                <button
+                                    class="wgp-tab"
+                                    :class="{ active: activeTab === 'css' }"
+                                    type="button"
+                                    @click="activeTab = 'css'"
+                                >
+                                    CSS
+                                </button>
+                                <button
+                                    class="wgp-tab"
+                                    :class="{ active: activeTab === 'js' }"
+                                    type="button"
+                                    @click="activeTab = 'js'"
+                                >
+                                    JS
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="wgp-editor-body">
+                            <MonacoEditor
+                                v-if="activeTab === 'html'"
+                                v-model="html"
+                                language="html"
+                                class="wgp-monaco"
+                                :theme="monacoTheme"
+                            />
+                            <MonacoEditor
+                                v-else-if="activeTab === 'css'"
+                                v-model="css"
+                                language="css"
+                                class="wgp-monaco"
+                                :theme="monacoTheme"
+                            />
+                            <MonacoEditor
+                                v-else
+                                v-model="js"
+                                language="javascript"
+                                class="wgp-monaco"
+                                :theme="monacoTheme"
+                            />
+                        </div>
+                    </section>
+
+                    <section class="wgp-panel wgp-preview-panel">
+                        <div class="wgp-panel-header">
+                            <div>
+                                <div class="wgp-panel-title">预览结果</div>
+                                <div class="wgp-panel-subtitle">点击“更新预览”后在右侧运行</div>
+                            </div>
+                        </div>
+
+                        <div class="wgp-preview-body">
+                            <iframe
+                                ref="modalIframeEl"
+                                class="wgp-iframe"
+                                sandbox="allow-scripts allow-same-origin"
+                            ></iframe>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </Teleport>
 </template>
 
 <script setup lang="ts">
 import { useData } from "vitepress";
-import { computed, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import MonacoEditor from "./MonacoEditor.vue";
 
 const props = defineProps({
@@ -127,6 +236,8 @@ const html = ref(props.html);
 const css = ref(props.css);
 const js = ref(props.js);
 const iframeEl = ref<HTMLIFrameElement | null>(null);
+const modalIframeEl = ref<HTMLIFrameElement | null>(null);
+const isModalOpen = ref(false);
 
 const monacoTheme = computed(() => (isDark.value ? "vs-dark" : "vs"));
 const activeTabLabel = computed(() => {
@@ -158,11 +269,24 @@ const buildSrcDoc = () => {
     return doc;
 };
 
-const run = () => {
-    const iframe = iframeEl.value;
+const writePreviewTo = (iframe: HTMLIFrameElement | null) => {
     if (!iframe) return;
-
     iframe.srcdoc = buildSrcDoc();
+};
+
+const run = () => {
+    writePreviewTo(iframeEl.value);
+    writePreviewTo(modalIframeEl.value);
+};
+
+const openModal = async () => {
+    isModalOpen.value = true;
+    await nextTick();
+    writePreviewTo(modalIframeEl.value);
+};
+
+const closeModal = () => {
+    isModalOpen.value = false;
 };
 
 const openInNewTab = () => {
@@ -179,8 +303,27 @@ const htmlBodyOnly = (fullHtml: string) => {
     return fullHtml;
 };
 
+const handleKeydown = (event: KeyboardEvent) => {
+    if (event.key === "Escape" && isModalOpen.value) {
+        closeModal();
+    }
+};
+
 onMounted(() => {
     run();
+    window.addEventListener("keydown", handleKeydown);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener("keydown", handleKeydown);
+    if (typeof document !== "undefined") {
+        document.body.style.overflow = "";
+    }
+});
+
+watch(isModalOpen, (value) => {
+    if (typeof document === "undefined") return;
+    document.body.style.overflow = value ? "hidden" : "";
 });
 </script>
 
@@ -285,6 +428,10 @@ onMounted(() => {
 
 .wgp-btn-secondary:hover {
     background: rgba(148, 163, 184, 0.14);
+}
+
+.wgp-btn-desktop-only {
+    display: inline-flex;
 }
 
 .wgp-workspace {
@@ -400,6 +547,39 @@ onMounted(() => {
     background: transparent !important;
 }
 
+.wgp-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(2, 6, 23, 0.64);
+    backdrop-filter: blur(8px);
+}
+
+.wgp-modal-shell {
+    --wgp-pane-height: min(68vh, 760px);
+    width: min(1400px, calc(100vw - 48px));
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 22px;
+    padding: 18px;
+    box-shadow:
+        0 24px 80px rgba(15, 23, 42, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.wgp-modal-toolbar {
+    margin-bottom: 18px;
+}
+
+.wgp-workspace-modal {
+    grid-template-columns: minmax(0, 1.2fr) minmax(420px, 0.8fr);
+}
+
 @media (max-width: 960px) {
     .wgp-root {
         --wgp-pane-height: 360px;
@@ -408,6 +588,10 @@ onMounted(() => {
 
     .wgp-workspace {
         grid-template-columns: 1fr;
+    }
+
+    .wgp-btn-desktop-only {
+        display: none;
     }
 }
 

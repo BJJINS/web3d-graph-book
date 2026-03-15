@@ -28,7 +28,6 @@ let model: MonacoType.editor.ITextModel | null = null;
 let disposeChange: MonacoType.IDisposable | null = null;
 let resizeObserver: ResizeObserver | null = null;
 let monaco: typeof MonacoType | null = null;
-let nextModelId = 0;
 let monacoPromise: Promise<typeof MonacoType> | null = null;
 
 declare global {
@@ -37,7 +36,14 @@ declare global {
               getWorker?: (_workerId: string, label: string) => Worker;
           }
         | undefined;
+    var __WGP_MONACO_MODEL_SEQ__: number | undefined;
 }
+
+const getNextModelId = () => {
+    globalThis.__WGP_MONACO_MODEL_SEQ__ =
+        (globalThis.__WGP_MONACO_MODEL_SEQ__ ?? 0) + 1;
+    return globalThis.__WGP_MONACO_MODEL_SEQ__;
+};
 
 const ensureMonaco = async () => {
     if (monaco) return monaco;
@@ -113,7 +119,7 @@ const createEditor = async () => {
 
     const m = await ensureMonaco();
     const uri = m.Uri.parse(
-        `inmemory://code-playground/${++nextModelId}.${getModelExtension(props.language)}`,
+        `inmemory://code-playground/${getNextModelId()}.${getModelExtension(props.language)}`,
     );
 
     model = m.editor.createModel(props.modelValue ?? "", props.language, uri);
