@@ -104,6 +104,14 @@ struct Particle {
 @group(0) @binding(1) var<storage, read> particles: array<Particle>;
 ```
 
+这里的 `array<Particle>` 是**对的**。它不是固定长度数组，而是 **runtime-sized array（运行时长度数组）**。  
+也就是说：
+
+- `array<Particle, 2>` 表示长度固定为 2
+- `array<Particle>` 表示长度不在 WGSL 里写死，而是由实际绑定的 storage buffer 大小决定
+
+这种“不写数组长度”的形式，通常只会出现在 **storage buffer** 这类特定场景里；如果是普通固定长度数组，才需要显式写出元素个数。
+
 这时事情就变了：
 
 - `var<uniform>` 表示数据来自 **uniform buffer**
